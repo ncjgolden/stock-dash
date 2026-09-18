@@ -79,6 +79,7 @@ def render_research(store, state, sample_mode):
         row = {'종목':stock['name'], '코드':r.get('code', key if not key.startswith('pending-') else '확인 필요'),
                '누적 매출 성장':growth(f['revenue'], f['prior_revenue']) if f else '조사 필요',
                '누적 영업이익 성장':growth(f['operating_profit'], f['prior_operating_profit']) if f else '조사 필요',
+               '누적 순이익 성장':growth(f.get('net_income'), f.get('prior_net_income')) if f.get('net_income') is not None and f.get('prior_net_income') is not None else '미확인',
                '외국인 / 기관':f"{flow['foreign']:+,.0f} / {flow['institution']:+,.0f} {flow['unit']}" if flow else '조사 필요',
                '적정주가 참고':f"{v['base']:,.0f}원" if v else '조사 필요',
                '일봉':trend['daily'], '주봉':trend['weekly'], '조사일':r.get('as_of','미조사')}
@@ -115,9 +116,19 @@ def render_research(store, state, sample_mode):
         if f:
             st.caption(f"누적 {f['period']} / 전년 {f['prior_period']} · {f['basis']} · {f['currency']} {f['unit']}")
             st.dataframe([{'항목':'매출','이번 누적':f['revenue'],'전년 누적':f['prior_revenue'],'변화':growth(f['revenue'],f['prior_revenue'])},
-                          {'항목':'영업이익','이번 누적':f['operating_profit'],'전년 누적':f['prior_operating_profit'],'변화':growth(f['operating_profit'],f['prior_operating_profit'])}], hide_index=True)
+                          {'항목':'영업이익','이번 누적':f['operating_profit'],'전년 누적':f['prior_operating_profit'],'변화':growth(f['operating_profit'],f['prior_operating_profit'])},
+                          {'항목':'순이익','이번 누적':f.get('net_income'),'전년 누적':f.get('prior_net_income'),'변화':growth(f.get('net_income'),f.get('prior_net_income')) if f.get('net_income') is not None and f.get('prior_net_income') is not None else None}], hide_index=True)
             st.link_button('실적 근거', f['source'])
         else: st.info('전년 같은 기간 누적 실적 조사 필요')
+        st.subheader('투자전략 체크')
+        rg = growth(f.get('revenue'), f.get('prior_revenue')) if f else None
+        pg = growth(f.get('operating_profit'), f.get('prior_operating_profit')) if f else None
+        ng = growth(f.get('net_income'), f.get('prior_net_income')) if f and f.get('net_income') is not None and f.get('prior_net_income') is not None else None
+        if rg is not None and pg is not None:
+            if rg > 0 and pg > 0: st.success('실적 모멘텀: 매출과 영업이익의 동반 증가가 다음 기간에도 이어지는지 확인')
+            elif rg > 0: st.warning('이익률 점검: 매출 증가가 영업이익으로 이어지는지 원가·가격을 확인')
+            else: st.warning('실적 둔화: 회복 여부와 둔화 원인을 다음 실적에서 확인')
+        if ng is not None: st.info(f'순이익 변화 {ng:+.1f}% · 영업외손익과 일회성 효과를 함께 확인')
         peers = r.get('peers')
         st.subheader('경쟁사 영업이익 순위')
         if peers and peers['rows']:
