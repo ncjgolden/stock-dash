@@ -12,9 +12,61 @@ from chat_research import published, parse_bundle, trends, growth, request_text
 from dashboard_ui import render_decision_dashboard
 
 
+def _dashboard_research(state):
+    """Merge published research with the existing saved official-analysis records."""
+    research = published()
+    for item in state.get('chat_research', []):
+        if item.get('code') not in research or item.get('as_of', '') >= research[item['code']].get('as_of', ''):
+            research[item['code']] = item
+
+    # Keep the existing automatic/DART analysis visible in the final cockpit too.
+    # No missing market/flow values are fabricated; unavailable fields stay absent.
+    for stock in state.get('stocks', []):
+        report = stock.get('report') or {}
+        code = stock.get('code', '')
+        if not report or not code or code.startswith('pending-'):
+            continue
+        years = report.get('years') or []
+        if len(years) < 2:
+            continue
+        last, prev = years[-1], years[-2]
+        try:
+            result = brief(report)
+        except (KeyError, TypeError, ValueError):
+            continue
+        research.setdefault(code, {
+            'code': code,
+            'name': report.get('name') or stock.get('name') or code,
+            'as_of': report.get('fetched') or report.get('price_date') or date.today().isoformat(),
+            'summary': {'text': result.get('summary', ''), 'source': report.get('source', '')},
+            'business': {'text': report.get('business_excerpt', ''), 'source': report.get('source', '')},
+            'financial': {
+                'period': str(last.get('year', '')) + '-12',
+                'prior_period': str(prev.get('year', '')) + '-12',
+                'basis': report.get('basis', '미확인'),
+                'currency': 'KRW',
+                'unit': '억원',
+                'revenue': last.get('revenue'),
+                'prior_revenue': prev.get('revenue'),
+                'operating_profit': last.get('profit'),
+                'prior_operating_profit': prev.get('profit'),
+                'net_income': last.get('net_income'),
+                'prior_net_income': prev.get('net_income'),
+                'source': report.get('source', ''),
+            },
+            'valuation': (
+                {**result['fair'], 'current_price': report.get('price'), 'price_date': report.get('price_date')}
+                if result.get('fair') and report.get('price') is not None else {}
+            ),
+            'data_gaps': report.get('data_gaps', []),
+            'sector': ', '.join(x.get('sector', '') for x in result.get('sectors', []) if x.get('sector')),
+        })
+    return research
+
+
 def render_research(store, state, sample_mode):
     theme()
-    research = published()
+    research = _dashboard_research(state)
     render_decision_dashboard(research)
     hero('내 투자의 현재를 한눈에', '관심 있는 기업을 담고, 판단에 필요한 변화만 확인하세요.', 'PLANX · STOCK RESEARCH')
     if sample_mode:
