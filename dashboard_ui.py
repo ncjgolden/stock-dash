@@ -158,8 +158,10 @@ def render_decision_dashboard(research: dict) -> None:
         st.info("아직 조사된 종목이 없습니다. 아래 '종목 추가'에서 기업명을 입력하면 분석 화면이 채워집니다.")
         return
 
-    # Focus on the most recently researched company while retaining a compact comparison strip.
-    focus = sorted(snapshots, key=lambda x: x.get("as_of") or "", reverse=True)[0]
+    # Follow the stock selected in the main research workflow; fall back to the newest research.
+    selected_code = st.session_state.get("selected_code")
+    by_code = {x["code"]: x for x in snapshots}
+    focus = by_code.get(selected_code) or sorted(snapshots, key=lambda x: x.get("as_of") or "", reverse=True)[0]
     others = [x for x in snapshots if x["code"] != focus["code"]]
 
     st.markdown('<div class="px-title">① 분석 종목</div>', unsafe_allow_html=True)
@@ -192,6 +194,8 @@ def render_decision_dashboard(research: dict) -> None:
             _trend(focus, NAVY)
             if not focus["prices"]:
                 st.caption("수정주가 시계열이 없으면 임의 그래프를 표시하지 않습니다.")
+            else:
+                st.caption("실제 시계열이 확보된 경우 일봉·완료 주봉 분석을 단계적으로 확장합니다.")
     with right:
         st.markdown('<div class="px-title">④ 투자전략 체크리스트</div>', unsafe_allow_html=True)
         for title, text, kind in _strategy(focus):
@@ -200,15 +204,19 @@ def render_decision_dashboard(research: dict) -> None:
 
     st.markdown('<div class="px-title">⑤ 전체 업종·시장 흐름</div>', unsafe_allow_html=True)
     with st.container():
-        # Use researched sectors when available; never invent percentages.
-        sector_rows = []
-        for item in snapshots:
-            sectors = item.get("business", "")
-            label = item["name"]
-            sector_rows.append((label, "기업별 섹터 분류는 사업보고서 확인 필요"))
-        if sector_rows:
-            st.dataframe(pd.DataFrame(sector_rows, columns=["분석 종목","업종 확인"]), hide_index=True, use_container_width=True)
-        st.caption("KOSPI/KOSDAQ·업종별 등락·거래대금·시장 수급은 별도 시장 API 연결이 필요합니다. 데이터가 없으면 숫자를 임의 생성하지 않습니다.")
+        market = [
+            ("KOSPI", "지수·등락률", "market.index"),
+            ("KOSDAQ", "지수·등락률", "market.index"),
+            ("주도 업종", "업종별 등락", "sector.performance"),
+            ("시장 수급", "외국인·기관·개인", "market.investor_flow"),
+            ("거래대금", "시장/업종/종목", "market.turnover"),
+            ("환율", "원/달러", "macro.fx"),
+        ]
+        mcols = st.columns(3, gap="small")
+        for col, (name, desc, cap) in zip(mcols * 2, market):
+            with col:
+                _metric_card(name, "데이터 연결 필요", desc + " · " + cap, "normal")
+        st.caption("시장·업종 API가 연결되면 이 영역은 실제 등락률과 거래대금으로 채웁니다. 현재는 필요한 지표의 위치만 표시하며 숫자를 임의 생성하지 않습니다.")
 
     st.markdown('<div class="px-title">⑥ 경쟁사·기업 특징</div>', unsafe_allow_html=True)
     a,b=st.columns(2,gap="small")
@@ -228,7 +236,22 @@ def render_decision_dashboard(research: dict) -> None:
     with b:
         st.markdown(f'<div class="px-card"><b>{html.escape(focus["name"])} 기업 특징·주력사업</b><p class="px-muted">{html.escape(focus["business"] or "공식 사업보고서 설명 자료가 없습니다.")}</p></div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="px-title">⑦ 데이터 신뢰도·추가 확인</div>', unsafe_allow_html=True)
+    st.markdown('<div class="px-title">⑦ 투자판단용 종합 체크</div>', unsafe_allow_html=True)
+    checks = [
+        ("실적", "매출 → 영업이익 → 순이익의 방향이 같은지 확인"),
+        ("수익성", "영업이익률이 개선·유지·하락 중인지 확인"),
+        ("가치", "역사적 참고가와 현재가 차이를 성장 지속성과 함께 확인"),
+        ("수급", "외국인·기관 흐름과 주가·실적의 동행 여부 확인"),
+        ("시장", "KOSPI/KOSDAQ과 해당 업종의 방향을 함께 확인"),
+        ("리스크", "공시·원가·환율·고객·정책 등 핵심 변수를 확인"),
+    ]
+    check_cols = st.columns(3, gap="small")
+    for col, (title, desc) in zip(check_cols * 2, checks):
+        with col:
+            _metric_card(title, "확인", desc, "good")
+    st.caption("이 체크는 특정 종목의 매수·매도를 지시하지 않고, 투자전략을 세울 때 확인할 항목을 구조화합니다.")
+
+    st.markdown('<div class="px-title">⑧ 데이터 신뢰도·추가 확인</div>', unsafe_allow_html=True)
     gaps = focus["gaps"]
     if gaps:
         for gap in gaps: st.write("• " + str(gap))
