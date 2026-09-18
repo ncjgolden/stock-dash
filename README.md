@@ -126,3 +126,20 @@ python -m unittest discover -s tests -v
 실제 키를 발급받은 뒤 실제 데이터 조회와 Calendar 권한을 최종 확인해야 합니다. 샘플 모드와 테스트는 실계정 연결 성공을 보장하지 않습니다.
 
 공식 도움말: [DART 개발가이드](https://opendart.fss.or.kr/guide/main.do) · [Supabase REST API](https://supabase.com/docs/guides/api/rest) · [Google Calendar 일정 생성](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert) · [GitHub 예약 실행](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule) · [Streamlit Secrets](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management).
+
+## 7. 최종 투자분석 대시보드
+
+메인 **오늘의 투자판단** 화면은 다음 순서로 구성됩니다.
+
+**종목 현재 위치 → 핵심 투자지표 → 가격·기술적 분석 → 투자판단 체크 → 조건별 투자전략 → 실적·기업분석 → 시장·수급 레이더 → 종합 확인 항목 → 업종별 투자지도**
+
+기존의 DART·공공데이터 기반 종목 분석과 채팅 조사 결과를 같은 화면의 대시보드 데이터로 통합합니다. 저장된 공식 결산 분석도 대시보드에서 이어서 확인할 수 있으며, 데이터가 없는 항목은 **데이터 연결 필요/미확인**으로 표시하고 임의의 주가·수급·시장·업종 수치를 만들지 않습니다.
+
+현재 업종 투자지도는 화면 구조와 종목의 업종 포커스 표시까지 반영되어 있습니다. 실제 업종별 등락률·거래대금·수급은 `sector.performance` 등 기관 Capability가 연결된 뒤 표시하도록 분리되어 있습니다.
+
+기존 종목 분석·공시·투자일지·계좌 연결·교육자료·데이터 연결 관리 기능은 유지합니다. 대시보드는 기존 기능을 대체하지 않고 그 위에 투자판단용 요약 화면을 추가하는 구조입니다.
+
+최종 디자인 반영 커밋:
+- `9b0e69415d56eb856681c7b662f1f3c6beecfdf6` · 대시보드 UI
+- `c6eea65648f2148da0c3871bff8f0735a3139870` · 기존 저장 분석과 대시보드 통합
+
