@@ -239,6 +239,29 @@
     .market-card .state{display:inline-flex;margin-top:13px;padding:4px 9px;border-radius:8px;background:#edf5ef;color:var(--success);font-size:.75rem;font-weight:900}
     .market-card.value .state{background:#fff0e5;color:var(--warning)}
 
+    .lesson3-intro{margin:30px 0 38px;padding:27px;border:1px solid #dfceb0;border-radius:24px;background:linear-gradient(145deg,#fffaf0,#fff);box-shadow:var(--shadow)}
+    .lesson3-intro-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px}
+    .lesson3-intro-head small{display:block;margin-bottom:7px;color:var(--gold);font-size:.78rem;font-weight:950;letter-spacing:.11em}
+    .lesson3-intro-head h2{margin:0;font-size:clamp(1.45rem,2.6vw,2rem);line-height:1.3;letter-spacing:-.04em}
+    .lesson3-intro-head p{max-width:760px;margin:8px 0 0;color:var(--muted);font-size:1rem;line-height:1.65}
+    .sample-flag{flex:0 0 auto;padding:7px 11px;border-radius:999px;background:#fff0dd;color:#8a5e17;font-size:.76rem;font-weight:900}
+    .dashboard-map{display:grid;grid-template-columns:1.15fr repeat(5,1fr);gap:8px;margin-bottom:12px}
+    .dashboard-map>div{min-height:112px;padding:15px;border:1px solid var(--line);border-radius:14px;background:white}
+    .dashboard-map .score{background:linear-gradient(145deg,#f6fbf7,#fff);border-top:4px solid var(--success)}
+    .dashboard-map b{display:block;margin-bottom:7px;color:var(--ink);font-size:.95rem}.dashboard-map span{display:block;color:var(--muted);font-size:.82rem;line-height:1.5}
+    .dashboard-wide{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:24px}
+    .dashboard-wide>div{min-height:88px;padding:15px;border:1px solid var(--line);border-radius:14px;background:#f7f9fb}
+    .dashboard-wide b{display:block;margin-bottom:6px;color:var(--deep-blue);font-size:.92rem}.dashboard-wide span{color:var(--muted);font-size:.82rem;line-height:1.5}
+    .api-map-title{margin:25px 0 11px;font-size:1.15rem;letter-spacing:-.03em}
+    .api-map{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.api-map article{padding:17px;border:1px solid var(--line);border-radius:15px;background:white}
+    .api-map article>span{display:inline-flex;margin-bottom:8px;padding:3px 7px;border-radius:6px;background:#edf4f8;color:var(--deep-blue);font-size:.72rem;font-weight:900}
+    .api-map h3{margin:0 0 7px;font-size:1.03rem}.api-map p{margin:0;color:var(--muted);font-size:.84rem;line-height:1.55}.api-map code{display:block;margin-top:10px;padding:7px 8px;border-radius:7px;background:#f5f3ee;color:#654c20;font-size:.73rem;overflow-wrap:anywhere}
+    .api-prep{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;counter-reset:prep}.api-prep div{position:relative;padding:16px 15px 15px 48px;border-radius:14px;background:#f4efe5;color:var(--muted);font-size:.84rem;line-height:1.55}
+    .api-prep div:before{counter-increment:prep;content:counter(prep);position:absolute;left:14px;top:15px;width:24px;height:24px;border-radius:8px;background:var(--gold);color:white;display:grid;place-items:center;font-weight:900}
+    .api-security{margin-top:12px;padding:13px 15px;border-left:4px solid var(--coral);border-radius:0 10px 10px 0;background:#fff5f0;color:#744834;font-size:.86rem;font-weight:750;line-height:1.6}
+    @media(max-width:980px){.dashboard-map{grid-template-columns:repeat(3,1fr)}.api-map{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:680px){.lesson3-intro{padding:19px}.lesson3-intro-head{display:block}.sample-flag{display:inline-flex;margin-top:12px}.dashboard-map,.dashboard-wide,.api-map,.api-prep{grid-template-columns:1fr}.dashboard-map>div{min-height:auto}}
+
     .module-label{margin:34px 0 13px;display:flex;align-items:center;gap:11px;color:var(--muted);font-size:.9rem;font-weight:900}
     .module-label:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,var(--line),transparent)}
     .course-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:19px}
@@ -1242,6 +1265,40 @@ app.py, sample-dashboard.html, requirements.txt, .env.example, .gitignore, start
       setTimeout(() => button.textContent = original, 1400);
     }
 
+    function renderLesson3DashboardGuide(){
+      return `<section class="lesson3-intro" aria-labelledby="lesson3-dashboard-title">
+        <div class="lesson3-intro-head">
+          <div><small>3강 시작 전에 · 화면과 데이터 이해</small><h2 id="lesson3-dashboard-title">PlanX 투자판단 대시보드는 이렇게 읽습니다</h2><p>화면의 숫자는 장식이 아닙니다. 시장 → 산업 → 기업 → 투자판단 순서로 공식 데이터를 연결하고, 근거가 없는 항목은 점수를 보류합니다.</p></div>
+          <span class="sample-flag">현재 화면 일부 · 샘플 데이터</span>
+        </div>
+        <div class="dashboard-map" aria-label="대시보드 핵심 구성">
+          <div class="score"><b>종합 투자점수</b><span>매크로·산업·실적·가치·수급을 한눈에 비교</span></div>
+          <div><b>매크로</b><span>금리·환율·유동성의 방향</span></div>
+          <div><b>성장산업</b><span>산업생산·투자·시장 성장</span></div>
+          <div><b>수출·수주</b><span>HS코드 수출과 계약 공시</span></div>
+          <div><b>실적 성장</b><span>매출·영업이익·현금의 변화</span></div>
+          <div><b>가치·수급</b><span>현재 가격과 외국인·기관 흐름</span></div>
+        </div>
+        <div class="dashboard-wide">
+          <div><b>종목·시장·산업 비교 차트</b><span>기업 주가만 보지 않고 KOSPI와 관련 업종을 같은 기간으로 비교합니다.</span></div>
+          <div><b>섹터 등락 지도</b><span>어느 산업으로 거래대금과 상승이 확산되는지 봅니다.</span></div>
+          <div><b>관심종목·AI 브리핑</b><span>내 종목의 변화와 다음 확인 조건을 쉬운 문장으로 정리합니다.</span></div>
+        </div>
+        <h3 class="api-map-title">화면별로 준비할 기관 API</h3>
+        <div class="api-map">
+          <article><span>경제 환경</span><h3>한국은행 ECOS</h3><p>원/달러 환율·기준금리·국고채·통화량을 매크로 카드에 연결합니다.</p><code>ECOS_API_KEY</code></article>
+          <article><span>기업 실적·공시</span><h3>금융감독원 OpenDART</h3><p>매출·영업이익·재고·현금흐름·수주 공시와 사업 내용을 확인합니다.</p><code>DART_CRTFC_KEY</code></article>
+          <article><span>가격·내 계좌</span><h3>한국투자증권 KIS</h3><p>현재가·일봉·수급과 본인의 보유종목·수량·평가손익을 불러옵니다.</p><code>KIS_APP_KEY · KIS_APP_SECRET</code></article>
+          <article><span>시장·섹터</span><h3>한국거래소 KRX</h3><p>KOSPI·KOSDAQ·업종 등락·거래대금·투자자별 흐름을 교차 확인합니다.</p><code>KRX_AUTH_KEY</code></article>
+          <article><span>가격 보완</span><h3>공공데이터포털 금융위원회</h3><p>영업일 기준 종가·거래량·시가총액을 수업용 기본 시세로 사용합니다.</p><code>DATA_GO_KR_SERVICE_KEY</code></article>
+          <article><span>산업 선행신호</span><h3>관세청·KOSIS</h3><p>HS코드 수출과 산업생산·재고·설비투자를 기업 실적보다 먼저 봅니다.</p><code>CUSTOMS_API_KEY · KOSIS_API_KEY</code></article>
+        </div>
+        <h3 class="api-map-title">수업 전에 준비하는 순서</h3>
+        <div class="api-prep"><div>각 기관에서 회원가입과 활용신청을 하고 승인 상태를 확인합니다.</div><div>키는 GitHub 코드가 아니라 Streamlit Secrets 또는 개인 환경설정에 저장합니다.</div><div>삼성전자 1개 종목으로 날짜·단위·출처가 맞는지 확인한 뒤 종목을 늘립니다.</div></div>
+        <div class="api-security">중요 · 인증키, 계좌번호, 비밀번호는 AI 채팅·교재 화면·GitHub 공개 코드에 붙이지 않습니다. API가 연결되지 않은 카드는 반드시 ‘샘플’ 또는 ‘자료 부족’으로 표시합니다.</div>
+      </section>`;
+    }
+
     function renderLesson(lesson){
       if(lesson.n===2){
         lessonContent.innerHTML=`<div class="lesson-crumb">2강 · AI 실습</div><h1>${lesson.title}</h1><p class="lesson-question">${lesson.question}</p>${renderStudentSteps()}<div class="complete-row"><button class="plain-btn" id="backToCourse">전체 과정</button><button class="gold-btn" id="completeBtn">${state.completed.has(2)?"✓ 학습 완료":"이번 회차 완료 표시"}</button></div>`;
@@ -1249,6 +1306,7 @@ app.py, sample-dashboard.html, requirements.txt, .env.example, .gitignore, start
       }
       const visual = lesson.image ? `<figure class="lesson-visual"><img src="${lesson.image}" alt="${lesson.imageAlt}"><figcaption>${lesson.imageCaption}</figcaption></figure>` : "";
       const projectLab = lesson.n === 2 ? renderWatchlistProjectLab() : "";
+      const lessonIntro = lesson.n === 3 ? renderLesson3DashboardGuide() : "";
       const sectionOffset = lesson.n === 2 ? 1 : 0;
       const caseMetrics = lesson.caseMetrics.map(([label,value]) => `<div class="case-metric"><b>${label}</b><span>${value}</span></div>`).join("");
       const dataPath = lesson.dataPath.map(item => `<li>${item}</li>`).join("");
@@ -1263,6 +1321,7 @@ app.py, sample-dashboard.html, requirements.txt, .env.example, .gitignore, start
         <h1>${lesson.title}</h1>
         <p class="lesson-question">핵심 질문 · ${lesson.question}</p>
         <span class="output-chip">PlanX 공식 · ${lesson.planxStage}</span>
+        ${lessonIntro}
         ${visual}
         <div class="goal-box"><div class="goal-title">오늘의 목표</div><ul class="goal-list">${lesson.goals.map(g => `<li>${g}</li>`).join("")}</ul></div>
         <section class="content-section"><h2><span>1</span>핵심 개념</h2><div class="concept-list">${lesson.concepts.map(([t,d]) => `<div class="concept"><b>${t}</b><p>${d}</p></div>`).join("")}</div></section>
