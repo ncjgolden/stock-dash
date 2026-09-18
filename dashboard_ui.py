@@ -40,6 +40,7 @@ def _snapshot(item, fallback_name):
         "op": _pct(f.get("operating_profit"), f.get("prior_operating_profit")),
         "net": _pct(f.get("net_income"), f.get("prior_net_income")),
         "op_value": f.get("operating_profit"),
+        "revenue_value": f.get("revenue"),
         "net_value": f.get("net_income"),
         "period": f.get("period"),
         "foreign": flow.get("foreign"),
@@ -243,6 +244,5 @@ def _fmt(v):
 
 
 def _margin(s):
-    op, rev = s.get("op_value"), None
-    # Growth-only research files may not include absolute revenue/op values.
-    return None
+    op, rev = _num(s.get("op_value")), _num(s.get("revenue_value"))
+    return op / rev * 100 if op is not None and rev not in (None, 0) else None
