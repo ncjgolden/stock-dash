@@ -60,12 +60,22 @@ def validate(report):
         if date.fromisoformat(flow['end']) > date.fromisoformat(report['as_of']): raise ValueError('미래 수급은 입력할 수 없습니다.')
     valuation = report.get('valuation')
     if valuation:
-        for k in ('low', 'base', 'high', 'current_price'): number(valuation, k)
-        if not 0 < valuation['low'] <= valuation['base'] <= valuation['high'] or valuation['current_price'] <= 0:
-            raise ValueError('가격 범위와 현재가를 확인하세요.')
-        if not valuation.get('method') or not valuation.get('source'): raise ValueError('평가 방법과 근거 출처가 필요합니다.')
-        date.fromisoformat(valuation['price_date'])
-        if date.fromisoformat(valuation['price_date']) > date.fromisoformat(report['as_of']): raise ValueError('미래 가격을 현재가로 사용할 수 없습니다.')
+        # 미확인 평가값은 명세상 null을 허용한다. 모든 값이 확인된 경우에만
+        # 가격 범위/현재가 검증을 수행하고, 방법·출처는 항상 남긴다.
+        if not valuation.get('method') or not valuation.get('source'):
+            raise ValueError('평가 방법과 근거 출처가 필요합니다.')
+        numeric = [valuation.get(k) for k in ('low', 'base', 'high', 'current_price')]
+        if all(v is not None for v in numeric):
+            for k in ('low', 'base', 'high', 'current_price'): number(valuation, k)
+            if not 0 < valuation['low'] <= valuation['base'] <= valuation['high'] or valuation['current_price'] <= 0:
+                raise ValueError('가격 범위와 현재가를 확인하세요.')
+            if not valuation.get('price_date'):
+                raise ValueError('현재가 기준일이 필요합니다.')
+            date.fromisoformat(valuation['price_date'])
+            if date.fromisoformat(valuation['price_date']) > date.fromisoformat(report['as_of']):
+                raise ValueError('미래 가격을 현재가로 사용할 수 없습니다.')
+        elif any(v is not None for v in numeric):
+            raise ValueError('적정주가 값은 확인값을 넣거나 모두 null로 유지하세요.')
     prices = report.get('prices')
     if prices:
         if prices.get('adjusted') is not True or not prices.get('source'): raise ValueError('추세 계산에는 수정주가와 출처가 필요합니다.')
@@ -123,7 +133,8 @@ def growth(current, previous):
 
 
 def trends(prices, as_of):
-    if not prices or not prices.get('rows'): return {'daily':'조사 필요', 'weekly':'조사 필요'}, None
+    if not prices or prices.get('adjusted') is not True or not prices.get('rows'):
+        return {'daily':'조사 필요', 'weekly':'조사 필요'}, None
     frame = pd.DataFrame(prices['rows']).sort_values('date')
     series = frame.set_index(pd.to_datetime(frame['date']))['close'].astype(float)
     def label(s, short, long):
