@@ -8,6 +8,8 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from krx_api import fetch_market_indices
+
 
 UP = "#6FCB2F"
 DOWN = "#3D8FEA"
@@ -173,7 +175,7 @@ div[data-testid="stDataFrame"]{border-color:#303430!important}
 
 
 def _ticker_row(research=None):
-    """Show verified KRX test prices while keeping unavailable macro values explicit."""
+    """Show verified market/index values and keep unavailable markets explicit."""
     items = [
         ("KOSPI", "연결 대기", ""),
         ("KOSDAQ", "연결 대기", ""),
@@ -181,6 +183,22 @@ def _ticker_row(research=None):
         ("SOX", "연결 대기", ""),
         ("원/달러", "연결 대기", ""),
     ]
+    try:
+        for row in fetch_market_indices():
+            name = row.get("name")
+            label = "KOSPI" if name in ("코스피", "KOSPI") else "KOSDAQ" if name in ("코스닥", "KOSDAQ") else None
+            if not label:
+                continue
+            for idx, (old_name, _, _) in enumerate(items):
+                if old_name == label:
+                    rate = row.get("change_rate")
+                    value = f'{row["close"]:,.2f}'
+                    if rate is not None:
+                        value += f" {rate:+.2f}%"
+                    items[idx] = (label, value, "up" if (rate or 0) >= 0 else "down")
+                    break
+    except Exception:
+        pass
     if research:
         for code, label in [("005930", "삼성전자"), ("000660", "SK하이닉스")]:
             item = research.get(code) or {}
@@ -201,10 +219,15 @@ def _ticker_row(research=None):
 
 def _trend(item):
     prices = item.get("prices") or {}
-    if not isinstance(prices, dict) or prices.get("adjusted") is not True:
-        st.info("수정주가 기준 일봉·완료 주봉 데이터가 아직 확인되지 않았습니다. 원시 KRX 종가는 현재가 표시용으로만 사용합니다.")
+    if not isinstance(prices, dict):
+        st.info("주가 데이터 형식을 확인할 수 없습니다.")
         return
     rows = prices.get("rows") or []
+    if not rows:
+        st.info("주가 시계열이 아직 연결되지 않았습니다.")
+        return
+    if prices.get("adjusted") is not True:
+        st.caption("현재 연결값은 공공데이터포털의 원시 종가입니다. 수정주가가 아니므로 배당·액면분할 등을 보정한 장기 추세로 해석하지 않습니다.")
     if not rows:
         st.info("수정주가 시계열이 아직 연결되지 않았습니다.")
         return
