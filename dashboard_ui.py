@@ -172,14 +172,26 @@ div[data-testid="stDataFrame"]{border-color:#303430!important}
     )
 
 
-def _ticker_row():
+def _ticker_row(research=None):
+    """Show verified KRX test prices while keeping unavailable macro values explicit."""
     items = [
-        ("KOSPI", "시장 데이터 연결 필요", ""),
-        ("KOSDAQ", "시장 데이터 연결 필요", ""),
-        ("S&P500", "시장 데이터 연결 필요", ""),
-        ("SOX", "시장 데이터 연결 필요", ""),
-        ("원/달러", "시장 데이터 연결 필요", ""),
+        ("KOSPI", "연결 대기", ""),
+        ("KOSDAQ", "연결 대기", ""),
+        ("S&P500", "연결 대기", ""),
+        ("SOX", "연결 대기", ""),
+        ("원/달러", "연결 대기", ""),
     ]
+    if research:
+        for code, label in [("005930", "삼성전자"), ("000660", "SK하이닉스")]:
+            item = research.get(code) or {}
+            snap = item.get("price_snapshot") or {}
+            price = snap.get("price")
+            change = item.get("change")
+            if price is not None:
+                text = f"{price:,.0f}원"
+                if change is not None:
+                    text += f" {change:+.2f}%"
+                items.append((label, text, "up" if (change or 0) >= 0 else "down"))
     parts = ['<div class="sd-top"><div class="sd-search-icon">⌕</div>']
     for name, value, tone in items:
         parts.append(f'<div class="sd-ticker {tone}"><b>{html.escape(name)}</b> {html.escape(value)}</div>')
@@ -348,7 +360,7 @@ def render_decision_dashboard(research: dict) -> None:
     """Final dashboard: market context -> stock position -> evidence -> conditional strategy -> industry map."""
     _css()
     snapshots = [_snapshot(x, x.get("name", "종목")) for x in research.values()]
-    _ticker_row()
+    _ticker_row(research)
 
     st.markdown(
         f'<div style="display:flex;align-items:end;justify-content:space-between;margin-bottom:8px">'
