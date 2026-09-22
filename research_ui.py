@@ -34,7 +34,7 @@ def _dashboard_research(state):
             result = brief(report)
         except (KeyError, TypeError, ValueError):
             continue
-        research.setdefault(code, {
+        generated = {
             'code': code,
             'name': report.get('name') or stock.get('name') or code,
             'as_of': report.get('fetched') or report.get('price_date') or date.today().isoformat(),
@@ -60,7 +60,33 @@ def _dashboard_research(state):
             ),
             'data_gaps': report.get('data_gaps', []),
             'sector': ', '.join(x.get('sector', '') for x in result.get('sectors', []) if x.get('sector')),
-        })
+            'earnings_history': report.get('years') or [],
+            'price_snapshot': {
+                'price': report.get('price'),
+                'price_date': report.get('price_date'),
+                'market_cap': report.get('market_cap'),
+                'shares': report.get('shares'),
+            },
+            'valuation_anchors': report.get('anchors') or [],
+        }
+        existing = research.get(code)
+        if existing:
+            # Published/chat research remains the evidence source, while live DART analysis fills
+            # fields that were previously shown as "data connection required".
+            for key, value in generated.items():
+                if key in ('code', 'name', 'as_of'):
+                    continue
+                if key not in existing or not existing.get(key):
+                    existing[key] = value
+            ef = existing.setdefault('financial', {})
+            for key, value in generated['financial'].items():
+                if ef.get(key) in (None, '') and value not in (None, ''):
+                    ef[key] = value
+            existing.setdefault('earnings_history', generated['earnings_history'])
+            existing.setdefault('price_snapshot', generated['price_snapshot'])
+            existing.setdefault('valuation_anchors', generated['valuation_anchors'])
+        else:
+            research[code] = generated
     return research
 
 
