@@ -4,119 +4,119 @@
     {
       "code": "005930",
       "name": "삼성전자",
-      "as_of": "2026-09-10",
+      "as_of": "2026-09-22",
       "summary": {
-        "text": "2025년 연간 결산과 2024년 결산을 비교한 초기 조사입니다. 분기별 최신 흐름과 현재 주가 판단은 추가 확인이 필요합니다.",
-        "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310002820"
+        "text": "2026년 상반기 연결 누적 실적을 2025년 상반기 누적 실적과 비교한 최신 공식자료 기준 조사입니다. 현재 수급·현재 주가·적정주가는 별도 확인이 필요합니다.",
+        "source": "https://www.samsung.com/sec/ir/reports-disclosures/public-disclosure/4015/"
       },
       "business": {
-        "text": "스마트폰·TV·가전 등 완제품과 메모리·시스템 반도체, 디스플레이, 자동차 전장·오디오 사업을 함께 운영합니다. 전사 이익을 읽을 때는 반도체만의 변화와 다른 사업의 변화를 나누어 확인해야 합니다.",
-        "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310002820"
+        "text": "DS(Device Solutions)는 메모리·시스템 반도체·파운드리 등 반도체 사업을, DX(Device eXperience)는 스마트폰·TV·가전 등 완제품 사업을 담당합니다. 2026년 2분기에는 DS 매출 127.5조원, 영업이익 89.2조원을 기록했고 DX는 매출 48조원, 영업이익 -0.8조원을 기록했습니다.",
+        "source": "https://news.samsung.com/kr/%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90-2026%EB%85%84-2%EB%B6%84%EA%B8%B0-%EC%8B%A4%EC%A0%81-%EB%B0%9C%ED%91%9C"
       },
       "financial": {
-        "period": "2025-12",
-        "prior_period": "2024-12",
+        "period": "2026-06",
+        "prior_period": "2025-06",
         "basis": "연결",
         "currency": "KRW",
         "unit": "억원",
-        "revenue": 3336059.38,
-        "prior_revenue": 3008709.03,
-        "operating_profit": 436010.51,
-        "prior_operating_profit": 327259.61,
-        "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310002820"
+        "revenue": 3053729,
+        "prior_revenue": 1537068,
+        "operating_profit": 1467252,
+        "prior_operating_profit": 113613,
+        "source": "https://www.samsung.com/sec/ir/reports-disclosures/public-disclosure/4015/"
       },
       "peers": {
-        "period": "2025-12",
+        "period": "2026-06",
         "basis": "연결",
         "currency": "KRW",
         "unit": "억원",
-        "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310002820",
-        "selection_reason": "메모리 관련 국내 기업 2개 표본의 전사 영업이익 비교입니다. 삼성전자는 완제품 등 다른 사업을 포함하므로 메모리 사업 경쟁력 순위로 해석하지 않습니다.",
+        "source": "https://www.samsung.com/sec/ir/reports-disclosures/public-disclosure/4015/",
+        "selection_reason": "2026년 상반기 국내 메모리 관련 대형 기업 2개 표본의 전사 누적 영업이익 비교입니다. 삼성전자는 메모리 외 DX 등 사업을 포함하고 SK하이닉스는 메모리 중심이므로 이 표는 전사 영업이익 규모 비교이며 특정 메모리 사업 경쟁력 순위로 해석하지 않습니다.",
         "rows": [
           {
             "name": "삼성전자",
-            "operating_profit": 436010.51,
-            "period": "2025-12",
+            "operating_profit": 1467252,
+            "period": "2026-06",
             "basis": "연결",
             "currency": "KRW",
             "unit": "억원",
-            "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310002820"
+            "source": "https://www.samsung.com/sec/ir/reports-disclosures/public-disclosure/4015/"
           },
           {
             "name": "SK하이닉스",
-            "operating_profit": 472063.19,
-            "period": "2025-12",
+            "operating_profit": 981528.91,
+            "period": "2026-06",
             "basis": "연결",
             "currency": "KRW",
             "unit": "억원",
-            "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260317000635"
+            "source": "https://kind.krx.co.kr/external/2026/07/29/000013/20260723001157/99626.htm"
           }
         ]
       },
       "data_gaps": [
-        "최신 2026년 분기 누적 실적 추가 조사",
-        "현재 수급·수정주가 시계열 미수집",
-        "적정주가 가정과 현 주가 대조 필요",
-        "주력사업별 매출 비중 추가 대조"
+        "현재 외국인·기관 수급 미수집",
+        "현재 수정주가 및 일봉·완료 주봉 시계열 미수집",
+        "적정주가 계산에 필요한 기준일 주가·주식수·평가가정 추가 확인 필요",
+        "경쟁사 비교는 동일 회계기간의 국내 2개 기업 전사 영업이익 표본이며 메모리 사업별 비교는 추가 조사 필요"
       ]
     },
     {
       "code": "000660",
       "name": "SK하이닉스",
-      "as_of": "2026-09-10",
+      "as_of": "2026-09-22",
       "summary": {
-        "text": "2025년 연간 결산과 2024년 결산을 비교한 초기 조사입니다. 분기별 최신 흐름과 현재 주가 판단은 추가 확인이 필요합니다.",
-        "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260317000635"
+        "text": "2026년 상반기 연결 누적 실적을 2025년 상반기 누적 실적과 비교한 최신 공식자료 기준 조사입니다. 현재 수급·현재 주가·적정주가는 별도 확인이 필요합니다.",
+        "source": "https://kind.krx.co.kr/external/2026/07/29/000013/20260723001157/99626.htm"
       },
       "business": {
-        "text": "DRAM과 NAND 등 메모리 반도체를 주요 제품으로 공급합니다. 고대역폭 메모리(HBM)와 서버용 제품 수요를 확인하되, 메모리 가격·출하량·제품 구성의 변화가 실제 이익으로 연결됐는지 대조해야 합니다.",
-        "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260317000635"
+        "text": "DRAM과 NAND Flash를 주력으로 하는 메모리 반도체 기업이며 Foundry 사업도 병행합니다. 2026년 2분기에는 HBM4 양산 출하, AI 서버용 D램·eSSD 등 고부가 제품 판매 확대가 실적에 기여했다고 회사가 설명했습니다.",
+        "source": "https://talent.skhynix.com/hub/ko/company/story/199"
       },
       "financial": {
-        "period": "2025-12",
-        "prior_period": "2024-12",
+        "period": "2026-06",
+        "prior_period": "2025-06",
         "basis": "연결",
         "currency": "KRW",
         "unit": "억원",
-        "revenue": 971466.75,
-        "prior_revenue": 661929.6,
-        "operating_profit": 472063.19,
-        "prior_operating_profit": 234673.19,
-        "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260317000635"
+        "revenue": 1318950.33,
+        "prior_revenue": 398710.93,
+        "operating_profit": 981528.91,
+        "prior_operating_profit": 166533.55,
+        "source": "https://kind.krx.co.kr/external/2026/07/29/000013/20260723001157/99626.htm"
       },
       "peers": {
-        "period": "2025-12",
+        "period": "2026-06",
         "basis": "연결",
         "currency": "KRW",
         "unit": "억원",
-        "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260317000635",
-        "selection_reason": "메모리 관련 국내 기업 2개 표본의 전사 영업이익 비교입니다. 삼성전자는 완제품 등 다른 사업을 포함하므로 메모리 사업 경쟁력 순위로 해석하지 않습니다.",
+        "source": "https://kind.krx.co.kr/external/2026/07/29/000013/20260723001157/99626.htm",
+        "selection_reason": "2026년 상반기 국내 메모리 관련 대형 기업 2개 표본의 전사 누적 영업이익 비교입니다. 삼성전자는 메모리 외 DX 등 사업을 포함하고 SK하이닉스는 메모리 중심이므로 이 표는 전사 영업이익 규모 비교이며 특정 메모리 사업 경쟁력 순위로 해석하지 않습니다.",
         "rows": [
           {
             "name": "삼성전자",
-            "operating_profit": 436010.51,
-            "period": "2025-12",
+            "operating_profit": 1467252,
+            "period": "2026-06",
             "basis": "연결",
             "currency": "KRW",
             "unit": "억원",
-            "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260310002820"
+            "source": "https://www.samsung.com/sec/ir/reports-disclosures/public-disclosure/4015/"
           },
           {
             "name": "SK하이닉스",
-            "operating_profit": 472063.19,
-            "period": "2025-12",
+            "operating_profit": 981528.91,
+            "period": "2026-06",
             "basis": "연결",
             "currency": "KRW",
             "unit": "억원",
-            "source": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260317000635"
+            "source": "https://kind.krx.co.kr/external/2026/07/29/000013/20260723001157/99626.htm"
           }
         ]
       },
       "data_gaps": [
-        "최신 2026년 분기 누적 실적 추가 조사",
-        "현재 수급·수정주가 시계열 미수집",
-        "적정주가 가정과 현 주가 대조 필요",
-        "주력사업별 매출 비중 추가 대조"
+        "현재 외국인·기관 수급 미수집",
+        "현재 수정주가 및 일봉·완료 주봉 시계열 미수집",
+        "적정주가 계산에 필요한 기준일 주가·주식수·평가가정 추가 확인 필요",
+        "경쟁사 비교는 동일 회계기간의 국내 2개 기업 전사 영업이익 표본이며 메모리 사업별 비교는 추가 조사 필요"
       ]
     }
   ]
