@@ -11,6 +11,7 @@ The adapter is intentionally small and conservative:
 from __future__ import annotations
 
 from datetime import date, timedelta
+from urllib.parse import unquote
 
 import requests
 import streamlit as st
@@ -24,8 +25,102 @@ def _api_key() -> str | None:
     try:
         value = st.secrets.get("KRX_API_KEY")
     except Exception:
-        return None
-    return str(value).strip() if value else None
+        value = None
+    return unquote(str(value).strip()) if value else None
+
+
+def _data_go_key() -> str | None:
+    try:
+        value = st.secrets.get("DATA_GO_KR_SERVICE_KEY")
+    except Exception:
+        value = None
+    return unquote(str(value).strip()) if value else None
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_data_go_price_history(code: str, days: int = 90) -> list[dict]:
+    """Fetch raw KRX stock history from the official public-data API."""
+    key = _data_go_key()
+    if not key:
+        return []
+    end = date.today()
+    start = end - timedelta(days=max(days, 1))
+    url = "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo"
+    params = {
+        "serviceKey": key,
+        "resultType": "json",
+        "numOfRows": 1000,
+        "beginBasDt": start.strftime("%Y%m%d"),
+        "endBasDt": end.strftime("%Y%m%d"),
+        "likeSrtnCd": str(code).zfill(6),
+    }
+    try:
+        payload = requests.get(url, params=params, timeout=(5, 15)).json()
+        response = payload.get("response", {})
+        if str(response.get("header", {}).get("resultCode")) not in ("00", "0"):
+            return []
+        items = (response.get("body", {}).get("items") or {}).get("item", [])
+        if isinstance(items, dict):
+            items = [items]
+        rows = []
+        for item in items:
+            issue = str(item.get("srtnCd", "")).removeprefix("A").zfill(6)
+            if issue != str(code).zfill(6):
+                continue
+            close = _clean_number(item.get("clpr"))
+            if close is None:
+                continue
+            rows.append({
+                "date": str(item.get("basDt")),
+                "open": _clean_number(item.get("mkp")),
+                "high": _clean_number(item.get("hipr")),
+                "low": _clean_number(item.get("lopr")),
+                "close": close,
+                "change": _clean_number(item.get("vs")),
+                "change_rate": _clean_number(item.get("fltRt")),
+                "volume": _clean_number(item.get("trqu")),
+                "trading_value": _clean_number(item.get("trPrc")),
+                "market_cap": _clean_number(item.get("mrktTotAmt")),
+                "shares": _clean_number(item.get("lstgStCnt")),
+                "name": item.get("itmsNm"),
+            })
+        return sorted(rows, key=lambda x: x["date"])
+    except (requests.RequestException, ValueError, TypeError, KeyError):
+        return []
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_market_indices() -> list[dict]:
+    """Fetch KOSPI/KOSDAQ index values from the official public-data API."""
+    key = _data_go_key()
+    if not key:
+        return []
+    url = "https://apis.data.go.kr/1160100/GetMarketIndexInfoService_V2/getStockMarketIndex_V2"
+    params = {
+        "serviceKey": key,
+        "resultType": "json",
+        "numOfRows": 100,
+        "basDt": date.today().strftime("%Y%m%d"),
+    }
+    try:
+        payload = requests.get(url, params=params, timeout=(5, 15)).json()
+        response = payload.get("response", {})
+        if str(response.get("header", {}).get("resultCode")) not in ("00", "0"):
+            return []
+        items = (response.get("body", {}).get("items") or {}).get("item", [])
+        if isinstance(items, dict):
+            items = [items]
+        out = []
+        for item in items:
+            name = str(item.get("idxNm") or item.get("itmsNm") or item.get("indexName") or "")
+            if name in ("코스피", "코스닥", "KOSPI", "KOSDAQ"):
+                close = _clean_number(item.get("clpr"))
+                rate = _clean_number(item.get("fltRt"))
+                if close is not None:
+                    out.append({"name": name, "close": close, "change_rate": rate, "date": item.get("basDt")})
+        return out
+    except (requests.RequestException, ValueError, TypeError, KeyError):
+        return []
 
 
 def _clean_number(value):
@@ -133,7 +228,9 @@ def load_market_bundle(research: dict) -> dict:
             continue
 
         _attach_derived_earnings(item)
-        rows = fetch_daily_market_data(code, days=3)
+        rows = fetch_data_go_price_history(code, days=90)
+        if not rows:
+            rows = fetch_daily_market_data(code, days=3)
         if not rows:
             gaps = item.setdefault("data_gaps", [])
             note = "KRX 시장데이터 연결 실패 또는 승인된 API 데이터 없음"
@@ -144,7 +241,7 @@ def load_market_bundle(research: dict) -> dict:
         latest = rows[-1]
         item["prices"] = {
             "adjusted": False,
-            "source": "한국거래소 KRX Open API · 유가증권 일별매매정보",
+            "source": "공공데이터포털 금융위원회 KRX 주식시세정보 · 원시 종가",
             "rows": rows,
         }
         item["price_snapshot"] = {
