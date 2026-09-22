@@ -32,8 +32,8 @@ class ResearchTests(unittest.TestCase):
 
     def test_daily_and_completed_weekly(self):
         dates=pd.bdate_range('2025-01-01', periods=160)
-        prices={'rows':[{'date':str(d.date()),'close':i+100} for i,d in enumerate(dates)]}
+        prices={'adjusted': True, 'rows':[{'date':str(d.date()),'close':i+100} for i,d in enumerate(dates)]}
         t,_=trends(prices,'2025-09-01')
         self.assertEqual(t['daily'],'상승 정렬');self.assertEqual(t['weekly'],'상승 정렬')
-        t,_=trends({'rows':prices['rows'][:30]},'2025-09-01')
+        t,_=trends({'adjusted': True, 'rows':prices['rows'][:30]},'2025-09-01')
         self.assertEqual(t['daily'],'기간 부족')
