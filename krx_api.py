@@ -81,7 +81,7 @@ def fetch_daily_market_data(code: str, days: int = 120) -> list[dict]:
             continue
 
         for item in payload.get("OutBlock_1", []) or []:
-            if str(item.get("ISU_SRT_CD", "")).zfill(6) != code:
+            if str(item.get("ISU_CD", "")).zfill(6) != code:
                 continue
             rows.append(
                 {
