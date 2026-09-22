@@ -360,6 +360,50 @@ def _mini_metric(title, value, note="", tone="normal"):
     )
 
 
+def _data_status_rows(raw: dict, focus: dict):
+    """Return a transparent inventory of what the dashboard can actually display."""
+    financial = raw.get("financial") or {}
+    flow = raw.get("flow") or {}
+    valuation = raw.get("valuation") or {}
+    prices = raw.get("prices") or {}
+    peers = raw.get("peers") or {}
+    rows = []
+
+    def add(name, value, source, status):
+        rows.append({"항목": name, "표시값": value, "상태": status, "출처": source or "미확인"})
+
+    if financial.get("revenue") is not None:
+        add("매출", f"{financial['revenue']:,.2f} {financial.get('unit','')}", financial.get("source"), "확인")
+        add("영업이익", f"{financial.get('operating_profit'):,.2f} {financial.get('unit','')}", financial.get("source"), "확인")
+    else:
+        add("매출·영업이익", "검증값 없음", financial.get("source"), "조사 필요")
+
+    if flow.get("foreign") is not None and flow.get("institution") is not None:
+        add("외국인·기관 수급", f"외국인 {flow['foreign']:+,.0f} / 기관 {flow['institution']:+,.0f} {flow.get('unit','')}", flow.get("source"), "확인")
+    else:
+        add("외국인·기관 수급", "검증값 없음", None, "조사 필요")
+
+    if valuation.get("base") is not None:
+        add("적정주가 참고", f"{valuation['base']:,.0f}원", valuation.get("source"), "확인")
+    else:
+        add("적정주가 참고", "검증값 없음", valuation.get("source"), "평가값 미확정")
+
+    if prices.get("rows"):
+        add("주가 시계열", f"{len(prices['rows'])}건 · 마지막 {prices['rows'][-1].get('date','')}", prices.get("source"), "확인" if prices.get("adjusted") is True else "원시 종가")
+    else:
+        add("일봉·완료 주봉", "검증된 시계열 없음", None, "데이터 연결 필요")
+
+    if peers.get("rows"):
+        add("경쟁사 영업이익", f"{len(peers['rows'])}개 기업 비교", peers.get("source"), "확인")
+    else:
+        add("경쟁사 영업이익", "검증된 비교표 없음", None, "조사 필요")
+
+    if focus.get("business"):
+        add("기업·주력사업", "공식 자료 기반 설명 표시", raw.get("business", {}).get("source"), "확인")
+
+    return rows
+
+
 def render_decision_dashboard(research: dict) -> None:
     """Final dashboard: market context -> stock position -> evidence -> conditional strategy -> industry map."""
     _css()
@@ -469,6 +513,11 @@ def render_decision_dashboard(research: dict) -> None:
             )
 
     st.markdown('<div class="sd-title">⑥ 실적·기업분석 · 시장 수급</div>', unsafe_allow_html=True)
+    # 확보된 공식 조사값과 아직 없는 값을 한 표에서 구분해 보여줍니다.
+    with st.expander("확인된 데이터 전체 보기", expanded=True):
+        status_rows = _data_status_rows(raw, focus)
+        st.dataframe(pd.DataFrame(status_rows), hide_index=True, use_container_width=True)
+        st.caption("‘확인’은 저장된 조사 파일 또는 연결된 provider에 검증된 값이 있다는 뜻입니다. 검증값이 없는 항목은 임의 숫자를 만들지 않습니다.")
     left, right = st.columns([1.15, .85], gap="small")
     with left:
         f = raw.get("financial") or {}
@@ -494,9 +543,9 @@ def render_decision_dashboard(research: dict) -> None:
     with right:
         flow = raw.get("flow") or {}
         st.markdown('<div class="sd-panel"><h4>시장 수급</h4>', unsafe_allow_html=True)
-        _mini_metric("외국인", _flow_text(flow.get("foreign"), flow.get("unit")), "순매수", "up")
-        _mini_metric("기관", _flow_text(flow.get("institution"), flow.get("unit")), "순매수", "blue")
-        _mini_metric("개인", "데이터 연결 필요", "시장 전체 투자자별 수급", "down")
+        _mini_metric("외국인", _flow_text(flow.get("foreign"), flow.get("unit")), "공식 조사 기간 순매수" if flow.get("foreign") is not None else "검증값 없음", "up")
+        _mini_metric("기관", _flow_text(flow.get("institution"), flow.get("unit")), "공식 조사 기간 순매수" if flow.get("institution") is not None else "검증값 없음", "blue")
+        _mini_metric("개인", "검증값 없음", "현재 저장된 공식 조사에는 개인 수급 원시값이 없음", "normal")
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="sd-title">⑦ 업종별 투자지도</div>', unsafe_allow_html=True)
