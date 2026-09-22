@@ -44,7 +44,7 @@ def _date_range(days: int):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_daily_market_data(code: str, days: int = 120) -> list[dict]:
+def fetch_daily_market_data(code: str, days: int = 365) -> list[dict]:
     """Fetch a bounded recent KOSPI daily series for one issue.
 
     KRX's daily-trading API is date-based, so this makes one request per
