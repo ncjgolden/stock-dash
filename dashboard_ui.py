@@ -44,7 +44,12 @@ def _snapshot(item, fallback_name):
         "name": item.get("name") or fallback_name,
         "code": item.get("code", ""),
         "price": price,
+        "price_snapshot": item.get("price_snapshot") or {},
         "change": item.get("change"),
+        "summary": (item.get("summary") or {}).get("text", ""),
+        "earnings_history": item.get("earnings_history") or [],
+        "valuation_anchors": item.get("valuation_anchors") or [],
+        "peers": item.get("peers") or {},
         "rev": _pct(f.get("revenue"), f.get("prior_revenue")),
         "op": _pct(f.get("operating_profit"), f.get("prior_operating_profit")),
         "net": _pct(f.get("net_income"), f.get("prior_net_income")),
@@ -184,7 +189,7 @@ def _ticker_row():
 def _trend(item):
     rows = item.get("prices") or []
     if not rows:
-        st.info("실제 가격 시계열이 연결되면 일봉·완료 주봉 분석이 표시됩니다.")
+        st.info("주가 시계열이 아직 연결되지 않았습니다. KRX/시세 API 승인 후 일봉·완료 주봉·RSI·MACD가 자동 표시됩니다.")
         return
     df = pd.DataFrame(rows)
     if "date" not in df or "close" not in df:
@@ -192,23 +197,44 @@ def _trend(item):
         return
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["close"] = pd.to_numeric(df["close"], errors="coerce")
-    df = df.dropna().tail(120)
+    df = df.dropna(subset=["date", "close"]).sort_values("date").drop_duplicates("date")
     if df.empty:
         st.info("표시할 주가 데이터가 없습니다.")
         return
+    df["MA20"] = df["close"].rolling(20).mean()
+    df["MA60"] = df["close"].rolling(60).mean()
     chart = (
-        alt.Chart(df)
-        .mark_line(color=UP, strokeWidth=2)
+        alt.Chart(df.tail(252))
+        .transform_fold(["close", "MA20", "MA60"], as_=["series", "value"])
+        .mark_line(strokeWidth=2)
         .encode(
             x=alt.X("date:T", title=None),
-            y=alt.Y("close:Q", title="종가", scale=alt.Scale(zero=False)),
-            tooltip=[alt.Tooltip("date:T", title="일자"), alt.Tooltip("close:Q", title="종가", format=",.0f")],
+            y=alt.Y("value:Q", title="가격", scale=alt.Scale(zero=False)),
+            color=alt.Color("series:N", title="지표"),
+            tooltip=[alt.Tooltip("date:T", title="일자"), alt.Tooltip("series:N", title="지표"), alt.Tooltip("value:Q", title="값", format=",.0f")],
         )
         .properties(height=250)
         .configure_view(stroke=None)
         .configure_axis(gridColor="#2C312C", labelColor="#8B938B", titleColor="#8B938B")
     )
     st.altair_chart(chart, use_container_width=True)
+    tech = _technical_stats(rows)
+    if tech:
+        position = f'{tech["position52"]:.1f}%' if tech.get("position52") is not None else "미확인"
+        cols = st.columns(6)
+        metrics = [
+            ("20일선 대비", f'{(tech["latest"] / tech["ma20"] - 1) * 100:+.1f}%' if tech.get("ma20") else "미확인"),
+            ("60일선 대비", f'{(tech["latest"] / tech["ma60"] - 1) * 100:+.1f}%' if tech.get("ma60") else "미확인"),
+            ("RSI(14)", f'{tech["rsi14"]:.1f}' if tech.get("rsi14") is not None else "미확인"),
+            ("MACD", f'{tech["macd"]:.1f}' if tech.get("macd") is not None else "미확인"),
+            ("52주 위치", position),
+            ("최근 거래량", f'{tech["volume"]:,.0f}' if tech.get("volume") is not None else "미확인"),
+        ]
+        for col, (title, value) in zip(cols, metrics):
+            with col:
+                _mini_metric(title, value, tech.get("latest_date", ""), "blue")
+
+
 
 
 def _strategy(snapshot):
@@ -228,6 +254,68 @@ def _strategy(snapshot):
     checks.append(("모멘텀", "일봉·완료 주봉·거래량 신호가 같은 방향인지 확인", "watch"))
     checks.append(("리스크", "실적·환율·원가·고객·정책 등 핵심 가정의 훼손 여부 확인", "caution"))
     return checks
+
+
+def _technical_stats(rows):
+    """Calculate transparent technical indicators when an OHLCV series is available."""
+    if not rows:
+        return {}
+    df = pd.DataFrame(rows).copy()
+    if "date" not in df or "close" not in df:
+        return {}
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    for col in ("close", "open", "high", "low", "volume", "trading_value"):
+        if col in df:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=["date", "close"]).sort_values("date").drop_duplicates("date")
+    if df.empty:
+        return {}
+    close = df["close"]
+    ma20 = close.rolling(20).mean()
+    ma60 = close.rolling(60).mean()
+    delta = close.diff()
+    gain = delta.clip(lower=0).rolling(14).mean()
+    loss = (-delta.clip(upper=0)).rolling(14).mean()
+    rs = gain / loss.replace(0, pd.NA)
+    rsi = 100 - (100 / (1 + rs))
+    ema12 = close.ewm(span=12, adjust=False).mean()
+    ema26 = close.ewm(span=26, adjust=False).mean()
+    macd = ema12 - ema26
+    signal = macd.ewm(span=9, adjust=False).mean()
+    low52 = close.tail(252).min()
+    high52 = close.tail(252).max()
+    latest = close.iloc[-1]
+    return {
+        "latest": latest,
+        "latest_date": df["date"].iloc[-1].date().isoformat(),
+        "ma20": ma20.iloc[-1] if pd.notna(ma20.iloc[-1]) else None,
+        "ma60": ma60.iloc[-1] if pd.notna(ma60.iloc[-1]) else None,
+        "rsi14": rsi.iloc[-1] if pd.notna(rsi.iloc[-1]) else None,
+        "macd": macd.iloc[-1] if pd.notna(macd.iloc[-1]) else None,
+        "signal": signal.iloc[-1] if pd.notna(signal.iloc[-1]) else None,
+        "low52": low52,
+        "high52": high52,
+        "position52": ((latest - low52) / (high52 - low52) * 100) if high52 != low52 else None,
+        "volume": df["volume"].iloc[-1] if "volume" in df and pd.notna(df["volume"].iloc[-1]) else None,
+        "trading_value": df["trading_value"].iloc[-1] if "trading_value" in df and pd.notna(df["trading_value"].iloc[-1]) else None,
+    }
+
+
+def _earnings_history_table(focus):
+    history = focus.get("earnings_history") or []
+    if len(history) < 2:
+        return None
+    rows = []
+    for item in history:
+        revenue = _num(item.get("revenue"))
+        profit = _num(item.get("profit"))
+        rows.append({
+            "기간": item.get("year"),
+            "매출(억원)": revenue,
+            "영업이익(억원)": profit,
+            "영업이익률": profit / revenue * 100 if revenue not in (None, 0) and profit is not None else None,
+        })
+    return pd.DataFrame(rows)
 
 
 def _industry_map(focus):
@@ -289,10 +377,20 @@ def render_decision_dashboard(research: dict) -> None:
             f'<span class="sd-badge">분석 대상</span><span class="sd-badge blue">데이터 기반</span></div>',
             unsafe_allow_html=True,
         )
+    tech = _technical_stats(focus.get("prices") or [])
+    position = f'{tech["position52"]:.1f}%' if tech.get("position52") is not None else "미확인"
+    market_state = (
+        "상승 추세" if tech.get("ma20") is not None and tech.get("ma60") is not None and tech["latest"] > tech["ma20"] > tech["ma60"]
+        else "하락 추세" if tech.get("ma20") is not None and tech.get("ma60") is not None and tech["latest"] < tech["ma20"] < tech["ma60"]
+        else "신호 혼합/확인 필요"
+    ) if tech else "가격 데이터 연결 필요"
+    volume_text = f'{tech["trading_value"]:,.0f}' if tech.get("trading_value") is not None else (
+        f'{tech["volume"]:,.0f}' if tech.get("volume") is not None else "미확인"
+    )
     for col, title, value, note in [
-        (b, "52주 가격 위치", "데이터 연결 필요", "최저·현재·최고"),
-        (c, "시장 상태", "분석 신호 종합", "실적·수급·기술"),
-        (d, "거래대금 / 거래량", "데이터 연결 필요", "시장 데이터"),
+        (b, "52주 가격 위치", position, "52주 최저=0% · 최고=100%"),
+        (c, "시장 상태", market_state, "20일선·60일선 기준"),
+        (d, "거래대금 / 거래량", volume_text, "최근 거래일 기준"),
     ]:
         with col:
             st.markdown(
@@ -361,9 +459,15 @@ def render_decision_dashboard(research: dict) -> None:
         st.markdown(
             f'<div class="sd-business"><b>매출</b> {_fmt(f.get("revenue"), "")}'
             f' &nbsp; <b>영업이익</b> {_fmt(f.get("operating_profit"), "")}'
-            f'<br><br>{html.escape(focus["business"] or "공식 사업보고서 기반 기업 설명이 없습니다.")}</div>',
+            f' &nbsp; <b>영업이익률</b> {_pct_text(_margin(focus))}'
+            f'<br><br>{html.escape(focus["business"] or "공식 사업보고서 기반 기업 설명이 없습니다.")}'
+            f'<br><br><b>핵심 요약</b> {html.escape(focus.get("summary") or "별도 조사 요약 없음")}</div>',
             unsafe_allow_html=True,
         )
+        earnings_df = _earnings_history_table(focus)
+        if earnings_df is not None:
+            st.markdown("<br><b style='font-size:9px'>연도별 실적 추이</b>", unsafe_allow_html=True)
+            st.dataframe(earnings_df, hide_index=True, use_container_width=True)
         peers = raw.get("peers") or {}
         if peers.get("rows"):
             st.markdown("<br><b style='font-size:9px'>경쟁사 영업이익 비교</b>", unsafe_allow_html=True)
