@@ -173,9 +173,10 @@ def render_research(store, state, sample_mode):
             st.link_button('실적 근거', f['source'])
         else: st.info('전년 같은 기간 누적 실적 조사 필요')
         st.subheader('투자전략 체크')
-        rg = growth(f.get('revenue'), f.get('prior_revenue')) if f else None
-        pg = growth(f.get('operating_profit'), f.get('prior_operating_profit')) if f else None
-        ng = growth(f.get('net_income'), f.get('prior_net_income')) if f and f.get('net_income') is not None and f.get('prior_net_income') is not None else None
+        # growth()는 화면 표시용 문자열을 반환하므로, 전략 조건에서는 원수치로 판단합니다.
+        rg = ((f['revenue'] / f['prior_revenue']) - 1) * 100 if f and f.get('prior_revenue') not in (None, 0) else None
+        pg = ((f['operating_profit'] / f['prior_operating_profit']) - 1) * 100 if f and f.get('prior_operating_profit') not in (None, 0) else None
+        ng = ((f['net_income'] / f['prior_net_income']) - 1) * 100 if f and f.get('net_income') is not None and f.get('prior_net_income') not in (None, 0) else None
         if rg is not None and pg is not None:
             if rg > 0 and pg > 0: st.success('실적 모멘텀: 매출과 영업이익의 동반 증가가 다음 기간에도 이어지는지 확인')
             elif rg > 0: st.warning('이익률 점검: 매출 증가가 영업이익으로 이어지는지 원가·가격을 확인')
