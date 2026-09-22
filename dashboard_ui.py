@@ -284,7 +284,8 @@ def render_decision_dashboard(research: dict) -> None:
             f'<div class="sd-hero"><div class="sd-name">{html.escape(focus["name"])}</div>'
             f'<div class="sd-code">{html.escape(focus["code"])} · {html.escape(focus.get("sector") or _sector_from_focus(focus))}</div>'
             f'<div class="sd-price">{html.escape(_fmt(focus["price"]))}</div>'
-            f'<div class="sd-change">{html.escape((f"{focus["change"]:+.2f}%" if focus["change"] is not None else "일간 등락 미확인"))}</div>'
+            focus_change = f"{focus['change']:+.2f}%" if focus["change"] is not None else "일간 등락 미확인"
+            f'<div class="sd-change">{html.escape(focus_change)}</div>'
             f'<span class="sd-badge">분석 대상</span><span class="sd-badge blue">데이터 기반</span></div>',
             unsafe_allow_html=True,
         )
