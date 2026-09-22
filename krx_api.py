@@ -106,16 +106,33 @@ def fetch_daily_market_data(code: str, days: int = 120) -> list[dict]:
     return sorted(rows, key=lambda x: x["date"])
 
 
+def _attach_derived_earnings(item: dict) -> None:
+    """Create a small transparent earnings history from published cumulative data."""
+    financial = item.get("financial") or {}
+    current_period = financial.get("period")
+    prior_period = financial.get("prior_period")
+    values = (
+        current_period, prior_period,
+        financial.get("revenue"), financial.get("prior_revenue"),
+        financial.get("operating_profit"), financial.get("prior_operating_profit"),
+    )
+    if not all(x not in (None, "") for x in values):
+        return
+    item["earnings_history"] = [
+        {"year": str(prior_period)[:7], "revenue": financial["prior_revenue"], "profit": financial["prior_operating_profit"]},
+        {"year": str(current_period)[:7], "revenue": financial["revenue"], "profit": financial["operating_profit"]},
+    ]
+
+
 def load_market_bundle(research: dict) -> dict:
     """Attach KRX test data to Samsung Electronics and SK hynix records."""
-    if not _api_key():
-        return research
 
     for code in TEST_CODES:
         item = research.get(code)
         if not item:
             continue
 
+        _attach_derived_earnings(item)
         rows = fetch_daily_market_data(code)
         if not rows:
             gaps = item.setdefault("data_gaps", [])
@@ -137,6 +154,12 @@ def load_market_bundle(research: dict) -> dict:
             "shares": latest.get("shares"),
         }
         item["change"] = latest.get("change_rate")
+        _attach_derived_earnings(item)
+
+        valuation = item.get("valuation")
+        if isinstance(valuation, dict):
+            valuation["current_price"] = latest.get("close")
+            valuation["price_date"] = latest.get("date")
 
         gaps = item.setdefault("data_gaps", [])
         gaps[:] = [
