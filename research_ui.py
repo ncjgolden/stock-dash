@@ -10,6 +10,7 @@ from automatic import brief
 from bi_view import theme, overview, detail, peers_chart
 from chat_research import published, parse_bundle, trends, growth, request_text
 from dashboard_ui import render_decision_dashboard
+from krx_api import load_market_bundle
 
 
 def _dashboard_research(state):
@@ -87,7 +88,7 @@ def _dashboard_research(state):
             existing.setdefault('valuation_anchors', generated['valuation_anchors'])
         else:
             research[code] = generated
-    return research
+    return load_market_bundle(research)
 
 
 def render_research(store, state, sample_mode):
