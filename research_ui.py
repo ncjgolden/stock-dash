@@ -171,7 +171,7 @@ def render_research(store, state, sample_mode):
                '누적 영업이익 성장':growth(f['operating_profit'], f['prior_operating_profit']) if f else '조사 필요',
                '누적 순이익 성장':growth(f.get('net_income'), f.get('prior_net_income')) if f.get('net_income') is not None and f.get('prior_net_income') is not None else '미확인',
                '외국인 / 기관':f"{flow['foreign']:+,.0f} / {flow['institution']:+,.0f} {flow['unit']}" if flow else '조사 필요',
-               '적정주가 참고':f"{v['base']:,.0f}원" if v else '조사 필요',
+               '적정주가 참고':f"{v['base']:,.0f}원" if v and v.get('base') is not None else '조사 필요',
                '일봉':trend['daily'], '주봉':trend['weekly'], '조사일':r.get('as_of','미조사')}
         rows.append(row);details[key]=(stock, r, trend, frame)
     overview(details, st.session_state.get('account_snapshot'))
@@ -243,14 +243,22 @@ def render_research(store, state, sample_mode):
             st.line_chart(frame.set_index('date')['close'])
             st.link_button('가격 자료 근거', r['prices']['source'])
     with tabs[3]:
-        v = r.get('valuation')
-        if v:
+        v = r.get('valuation') or {}
+        if v.get('base') is not None and v.get('low') is not None and v.get('high') is not None:
             a,b,c=st.columns(3)
             for col,key,label in [(a,'low','낮은 참고가'),(b,'base','기본 참고가'),(c,'high','높은 참고가')]: col.metric(label,f"{v[key]:,.0f}원")
-            st.write(v['method']);st.caption(f"비교 가격 {v['current_price']:,.0f}원 · {v['price_date']} · 기본 참고가 대비 차이 {(v['base']/v['current_price']-1)*100:+.1f}%")
-            st.link_button('평가 근거', v['source'])
-        else: st.info('평가 가정과 가격 근거 조사 필요')
-        for gap in r.get('data_gaps', []): st.write('확인 필요 · ' + str(gap))
+            current_price = v.get('current_price')
+            price_date = v.get('price_date')
+            if current_price is not None and price_date:
+                diff = (v['base']/current_price-1)*100 if current_price else None
+                st.write(v.get('method', ''))
+                st.caption(f"비교 가격 {current_price:,.0f}원 · {price_date} · 기본 참고가 대비 차이 {diff:+.1f}%")
+            else:
+                st.write(v.get('method', ''))
+                st.caption('현재 가격과 기준일은 아직 확인되지 않았습니다.')
+            if v.get('source'): st.link_button('평가 근거', v['source'])
+        else: st.info('적정주가 값이 아직 확인되지 않았습니다. 확인 전 값은 임의로 표시하지 않습니다.')
+
     if not sample_mode:
         with st.expander('투자일지 남기기'):
             with st.form('research_note'):
