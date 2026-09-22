@@ -39,7 +39,8 @@ def _snapshot(item, fallback_name):
     v = item.get("valuation") or {}
     flow = item.get("flow") or {}
     prices = (item.get("prices") or {}).get("rows") or []
-    price = v.get("current_price") or (prices[-1].get("close") if prices else None)
+    snap = item.get("price_snapshot") or {}
+    price = v.get("current_price") or snap.get("price") or (prices[-1].get("close") if prices else None)
     return {
         "name": item.get("name") or fallback_name,
         "code": item.get("code", ""),
