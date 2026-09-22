@@ -111,15 +111,19 @@ def detail(r):
         else:st.info('같은 기간의 전년·당년 실적이 필요합니다.')
     with c,st.container(border=True):
         st.subheader('가격과 가치의 거리')
-        v=r.get('valuation')
-        if v:
+        v=r.get('valuation') or {}
+        numeric_keys=('low','base','high','current_price')
+        if all(v.get(k) is not None for k in numeric_keys):
             df=pd.DataFrame([{'구분':label,'가격':v[k]} for k,label in [('low','낮은 참고가'),('base','기본 참고가'),('high','높은 참고가'),('current_price','비교 주가')]])
             draw(alt.Chart(df).mark_point(filled=True,size=130).encode(x=alt.X('가격:Q',title='원',scale=alt.Scale(zero=False)),y=alt.Y('구분:N',title=None),color=alt.value(TEAL),tooltip=['구분','가격']).properties(height=160))
             st.metric('기본 참고가',f"{v['base']:,.0f}원")
-            st.caption(f"가격 기준일 {v['price_date']} · 평가 가정은 상세 탭에서 확인")
+            if v.get('price_date'):
+                st.caption(f"가격 기준일 {v['price_date']} · 평가 가정은 상세 탭에서 확인")
+            else:
+                st.caption('평가 기준일이 아직 확인되지 않았습니다.')
         else:
             st.write('**평가 근거를 기다리고 있습니다.**')
-            st.caption('현재 주가와 실적 전망, 적용 배수의 근거가 모이면 참고가 범위를 표시합니다.')
+            st.caption('현재 주가와 실적 전망, 적용 배수의 근거가 모두 확인되면 참고가 범위를 표시합니다.')
 
 
 def peers_chart(peers):
