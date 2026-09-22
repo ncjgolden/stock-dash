@@ -35,12 +35,15 @@ try:
         "SUPABASE_SERVICE_ROLE_KEY",
         "DATA_GO_KR_SERVICE_KEY",
         "DART_CRTFC_KEY",
+        "DART_API_KEY",
         "OPENAI_API_KEY",
         "OPENAI_MODEL",
         "KIS_ENV", "KIS_APP_KEY", "KIS_APP_SECRET", "KIS_CANO", "KIS_ACNT_PRDT_CD",
     ]:
         if key in st.secrets:
             os.environ[key] = str(st.secrets[key])
+    if not os.getenv("DART_CRTFC_KEY") and os.getenv("DART_API_KEY"):
+        os.environ["DART_CRTFC_KEY"] = os.environ["DART_API_KEY"]
 except FileNotFoundError:
     pass
 
