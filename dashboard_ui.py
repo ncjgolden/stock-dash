@@ -200,13 +200,17 @@ def _ticker_row(research=None):
 
 
 def _trend(item):
-    rows = item.get("prices") or []
+    prices = item.get("prices") or {}
+    if not isinstance(prices, dict) or prices.get("adjusted") is not True:
+        st.info("수정주가 기준 일봉·완료 주봉 데이터가 아직 확인되지 않았습니다. 원시 KRX 종가는 현재가 표시용으로만 사용합니다.")
+        return
+    rows = prices.get("rows") or []
     if not rows:
-        st.info("주가 시계열이 아직 연결되지 않았습니다. KRX/시세 API 승인 후 일봉·완료 주봉·RSI·MACD가 자동 표시됩니다.")
+        st.info("수정주가 시계열이 아직 연결되지 않았습니다.")
         return
     df = pd.DataFrame(rows)
     if "date" not in df or "close" not in df:
-        st.info("주가 데이터 형식이 기술적 분석에 충분하지 않습니다.")
+        st.info("수정주가 데이터 형식이 기술적 분석에 충분하지 않습니다.")
         return
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["close"] = pd.to_numeric(df["close"], errors="coerce")
@@ -295,8 +299,8 @@ def _technical_stats(rows):
     ema26 = close.ewm(span=26, adjust=False).mean()
     macd = ema12 - ema26
     signal = macd.ewm(span=9, adjust=False).mean()
-    low52 = close.tail(252).min()
-    high52 = close.tail(252).max()
+    low52 = close.tail(252).min() if len(close) >= 252 else None
+    high52 = close.tail(252).max() if len(close) >= 252 else None
     latest = close.iloc[-1]
     return {
         "latest": latest,
@@ -308,7 +312,7 @@ def _technical_stats(rows):
         "signal": signal.iloc[-1] if pd.notna(signal.iloc[-1]) else None,
         "low52": low52,
         "high52": high52,
-        "position52": ((latest - low52) / (high52 - low52) * 100) if high52 != low52 else None,
+        "position52": ((latest - low52) / (high52 - low52) * 100) if low52 is not None and high52 is not None and high52 != low52 else None,
         "volume": df["volume"].iloc[-1] if "volume" in df and pd.notna(df["volume"].iloc[-1]) else None,
         "trading_value": df["trading_value"].iloc[-1] if "trading_value" in df and pd.notna(df["trading_value"].iloc[-1]) else None,
     }
