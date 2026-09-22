@@ -44,7 +44,7 @@ def _date_range(days: int):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_daily_market_data(code: str, days: int = 14) -> list[dict]:
+def fetch_daily_market_data(code: str, days: int = 3) -> list[dict]:
     """Fetch a short recent KOSPI daily series for one issue.
 
     The KRX daily-trading API is date-based. The dashboard therefore loads a
@@ -72,7 +72,7 @@ def fetch_daily_market_data(code: str, days: int = 14) -> list[dict]:
                 BASE_URL,
                 params=params,
                 headers=headers,
-                timeout=3,
+                timeout=2.5,
             )
             response.raise_for_status()
             payload = response.json()
@@ -133,7 +133,7 @@ def load_market_bundle(research: dict) -> dict:
             continue
 
         _attach_derived_earnings(item)
-        rows = fetch_daily_market_data(code, days=14)
+        rows = fetch_daily_market_data(code, days=3)
         if not rows:
             gaps = item.setdefault("data_gaps", [])
             note = "KRX 시장데이터 연결 실패 또는 승인된 API 데이터 없음"
