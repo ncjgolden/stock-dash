@@ -44,12 +44,12 @@ def _date_range(days: int):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_daily_market_data(code: str, days: int = 365) -> list[dict]:
-    """Fetch a bounded recent KOSPI daily series for one issue.
+def fetch_daily_market_data(code: str, days: int = 14) -> list[dict]:
+    """Fetch a short recent KOSPI daily series for one issue.
 
-    KRX's daily-trading API is date-based, so this makes one request per
-    calendar date. Results are cached for one hour to keep Streamlit reloads
-    practical.
+    The KRX daily-trading API is date-based. The dashboard therefore loads a
+    short recent window for fast rendering; longer technical history remains
+    unavailable until a dedicated historical refresh is requested.
     """
     code = str(code).zfill(6)
     if code not in TEST_CODES:
@@ -72,7 +72,7 @@ def fetch_daily_market_data(code: str, days: int = 365) -> list[dict]:
                 BASE_URL,
                 params=params,
                 headers=headers,
-                timeout=8,
+                timeout=3,
             )
             response.raise_for_status()
             payload = response.json()
@@ -133,7 +133,7 @@ def load_market_bundle(research: dict) -> dict:
             continue
 
         _attach_derived_earnings(item)
-        rows = fetch_daily_market_data(code)
+        rows = fetch_daily_market_data(code, days=14)
         if not rows:
             gaps = item.setdefault("data_gaps", [])
             note = "KRX 시장데이터 연결 실패 또는 승인된 API 데이터 없음"
