@@ -88,7 +88,18 @@ def _dashboard_research(state):
             existing.setdefault('valuation_anchors', generated['valuation_anchors'])
         else:
             research[code] = generated
-    return load_market_bundle(research)
+    # KRX is an optional live-data layer. Never let a slow/failed market API
+    # prevent the existing research dashboard and its verified financial data
+    # from rendering.
+    try:
+        return load_market_bundle(research)
+    except Exception as error:
+        for item in research.values():
+            gaps = item.setdefault('data_gaps', [])
+            note = 'KRX 실시간 시세 연동 예외: ' + type(error).__name__
+            if note not in gaps:
+                gaps.append(note)
+        return research
 
 
 def render_research(store, state, sample_mode):
