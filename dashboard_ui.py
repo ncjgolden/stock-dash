@@ -410,9 +410,14 @@ def _data_status_rows(raw: dict, focus: dict):
     def add(name, value, source, status):
         rows.append({"항목": name, "표시값": value, "상태": status, "출처": source or "미확인"})
 
-    if financial.get("revenue") is not None:
-        add("매출", f"{financial['revenue']:,.2f} {financial.get('unit','')}", financial.get("source"), "확인")
-        add("영업이익", f"{financial.get('operating_profit'):,.2f} {financial.get('unit','')}", financial.get("source"), "확인")
+    revenue = _num(financial.get("revenue"))
+    operating_profit = _num(financial.get("operating_profit"))
+    unit = financial.get("unit", "")
+    if revenue is not None or operating_profit is not None:
+        revenue_text = f"{revenue:,.2f} {unit}" if revenue is not None else "미확인"
+        profit_text = f"{operating_profit:,.2f} {unit}" if operating_profit is not None else "미확인"
+        status = "확인" if revenue is not None and operating_profit is not None else "일부 확인"
+        add("매출·영업이익", f"매출 {revenue_text} / 영업이익 {profit_text}", financial.get("source"), status)
     else:
         add("매출·영업이익", "검증값 없음", financial.get("source"), "조사 필요")
 
