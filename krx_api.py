@@ -260,7 +260,7 @@ def load_market_bundle(research: dict) -> dict:
             continue
 
         _attach_derived_earnings(item)
-        rows = fetch_data_go_price_history(code, days=90)
+        rows = fetch_data_go_price_history(code, days=370)
         if not rows:
             rows = fetch_daily_market_data(code, days=3)
         if not rows:
