@@ -272,7 +272,7 @@ def _trend(item):
         .configure_view(stroke=None)
         .configure_axis(gridColor="#2C312C", labelColor="#8B938B", titleColor="#8B938B")
     )
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, width="stretch")
     tech = _technical_stats(rows)
     if tech:
         position = f'{tech["position52"]:.1f}%' if tech.get("position52") is not None else "미확인"
@@ -559,7 +559,7 @@ def render_decision_dashboard(research: dict) -> None:
     # 확보된 공식 조사값과 아직 없는 값을 한 표에서 구분해 보여줍니다.
     with st.expander("확인된 데이터 전체 보기", expanded=True):
         status_rows = _data_status_rows(raw, focus)
-        st.dataframe(pd.DataFrame(status_rows), hide_index=True, use_container_width=True)
+        st.dataframe(pd.DataFrame(status_rows), hide_index=True, width="stretch")
         st.caption("‘확인’은 저장된 조사 파일 또는 연결된 provider에 검증된 값이 있다는 뜻입니다. 검증값이 없는 항목은 임의 숫자를 만들지 않습니다.")
     left, right = st.columns([1.15, .85], gap="small")
     with left:
@@ -576,12 +576,12 @@ def render_decision_dashboard(research: dict) -> None:
         earnings_df = _earnings_history_table(focus)
         if earnings_df is not None:
             st.markdown("<br><b style='font-size:9px'>연도별 실적 추이</b>", unsafe_allow_html=True)
-            st.dataframe(earnings_df, hide_index=True, use_container_width=True)
+            st.dataframe(earnings_df, hide_index=True, width="stretch")
         peers = raw.get("peers") or {}
         if peers.get("rows"):
             st.markdown("<br><b style='font-size:9px'>경쟁사 영업이익 비교</b>", unsafe_allow_html=True)
             rows = [{"기업": x.get("name"), "영업이익": x.get("operating_profit"), "기간": peers.get("period")} for x in peers["rows"]]
-            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+            st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
         st.markdown('</div>', unsafe_allow_html=True)
     with right:
         flow = raw.get("flow") or {}
