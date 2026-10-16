@@ -1,5 +1,4 @@
 """Personal domestic-stock balance reader. No order endpoints."""
-import os
 import re
 import time
 from datetime import datetime
@@ -23,12 +22,12 @@ def amount(value):
 
 
 class KIS:
-    def __init__(self):
-        self.key = os.getenv('KIS_APP_KEY', '').strip()
-        self.secret = os.getenv('KIS_APP_SECRET', '').strip()
-        self.cano = os.getenv('KIS_CANO', '').strip()
-        self.product = os.getenv('KIS_ACNT_PRDT_CD', '').strip()
-        self.mode = os.getenv('KIS_ENV', 'demo').strip()
+    def __init__(self, *, key, secret, cano, product, mode='demo'):
+        self.key = key.strip()
+        self.secret = secret.strip()
+        self.cano = cano.strip()
+        self.product = product.strip()
+        self.mode = mode.strip()
         if not self.key or not self.secret or not re.fullmatch(r'[0-9]{8}', self.cano) or not re.fullmatch(r'[0-9]{2}', self.product):
             raise BrokerError('한국투자증권 App Key·App Secret·계좌 앞 8자리·뒤 2자리를 설정하세요.')
         if self.mode not in ('real', 'demo'):
@@ -105,3 +104,4 @@ class KIS:
         return {'positions': positions, 'value': total, 'pnl': sum(p['pnl'] for p in positions),
                 'cash': amount(summary['dnca_tot_amt']) if summary.get('dnca_tot_amt') not in (None, '') else None,
                 'mode': self.mode, 'fetched': datetime.now(ZoneInfo('Asia/Seoul')).isoformat()}
+

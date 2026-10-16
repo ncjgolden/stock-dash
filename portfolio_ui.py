@@ -1,6 +1,4 @@
 """Account holdings stay in this authenticated session; public reports use existing storage."""
-import hashlib
-import os
 import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -13,24 +11,72 @@ from broker_kis import BrokerError, KIS
 from providers import Official
 
 
+INPUT_KEYS = ('kis_input_mode', 'kis_input_key', 'kis_input_secret', 'kis_input_cano', 'kis_input_product')
+
+
+def disconnect_account():
+    for key in ('kis_client', 'kis_signature', 'kis_session_connection', 'account_snapshot',
+                'account_results', 'account_notes', 'account_note'):
+        st.session_state.pop(key, None)
+    st.session_state.kis_clear_inputs = True
+
+
 def render_portfolio(store, sample_mode):
     st.header('내 계좌 자동 분석')
     st.caption('한국투자증권 국내주식 · 잔고 조회와 분석 · 조회 시점 기준')
-    with st.expander('처음 한 번 · 계좌 연결 방법'):
-        st.markdown('1. 한국투자증권 Open API를 신청하고 사용할 계좌의 App Key와 App Secret을 발급받습니다.\n2. Streamlit 앱 관리 → Settings → Secrets에 아래 항목을 추가합니다.\n3. 저장 후 앱을 다시 열고 계좌 불러오기·분석을 누릅니다.')
-        st.link_button('한국투자증권 API 신청 안내', 'https://apiportal.koreainvestment.com/intro')
-        st.code('KIS_ENV = "demo"\nKIS_APP_KEY = "발급받은 App Key"\nKIS_APP_SECRET = "발급받은 App Secret"\nKIS_CANO = "계좌 앞 8자리"\nKIS_ACNT_PRDT_CD = "계좌 뒤 2자리"', language='toml')
-        st.write('실제 계좌는 KIS_ENV를 real로 설정하고 실전용 키를 사용합니다. 계좌번호와 키는 채팅이나 GitHub 코드에 넣지 마세요.')
-        st.caption('수량·매입가·계좌 잔고는 현재 로그인 세션에서만 보관합니다. 공개 기업 분석과 투자일지는 기존 저장소에 저장합니다. 매매 주문 기능은 없습니다.')
+    st.markdown("""<style>
+    .st-key-account_connection {background:#fffdf7;border:1px solid #d8c799;border-radius:12px;padding:24px;}
+    .st-key-account_connection label p {font-size:18px!important;line-height:1.6;}
+    .st-key-account_connection input {font-size:18px!important;min-height:48px;}
+    .st-key-account_connection button {min-height:52px;font-size:18px!important;}
+    </style>""", unsafe_allow_html=True)
     if sample_mode:
-        st.info('APP_PASSWORD를 설정하고 로그인하면 개인 계좌 연결을 사용할 수 있습니다.')
+        st.info('앱 운영자가 APP_PASSWORD를 설정하면 개인 계좌 연결이 열립니다.')
         return
-    if st.button('계좌 불러오기·자동 분석', type='primary'):
-        signature = hashlib.sha256('|'.join(os.getenv(k, '') for k in ['KIS_ENV', 'KIS_APP_KEY', 'KIS_APP_SECRET', 'KIS_CANO', 'KIS_ACNT_PRDT_CD']).encode()).hexdigest()
+    # Remove credentials and holdings from legacy environment-based sessions.
+    if st.session_state.get('kis_client') and not st.session_state.get('kis_session_connection'):
+        disconnect_account()
+    if st.session_state.pop('kis_clear_inputs', False):
+        for key in INPUT_KEYS:
+            st.session_state.pop(key, None)
+    client = st.session_state.get('kis_client')
+    if client:
+        with st.container(border=True):
+            st.success(('모의' if client.mode == 'demo' else '실전') + ' 계좌 연결됨 · 현재 접속에서만 사용')
+            if st.button('계좌 연결 해제', use_container_width=True):
+                disconnect_account()
+                st.rerun()
+    else:
+        with st.container(key='account_connection'):
+            st.subheader('내 계좌 연결')
+            st.write('① 투자 환경 선택 → ② 발급받은 키 입력 → ③ 연결 확인')
+            st.caption('입력한 키는 이 앱 서버의 현재 접속 세션에서만 처리합니다. 저장소·AI로 전송하지 않습니다.')
+            st.link_button('한국투자증권 API 발급 안내', 'https://apiportal.koreainvestment.com/intro')
+            with st.form('kis_connect'):
+                mode = st.radio('투자 환경', ['모의투자', '실전투자'], horizontal=True, key='kis_input_mode')
+                key = st.text_input('App Key', type='password', key='kis_input_key')
+                secret = st.text_input('App Secret', type='password', key='kis_input_secret')
+                cano = st.text_input('계좌번호 앞 8자리', type='password', max_chars=8, key='kis_input_cano')
+                product = st.text_input('계좌번호 뒤 2자리', max_chars=2, key='kis_input_product')
+                submitted = st.form_submit_button('연결 확인', type='primary', use_container_width=True)
+            if submitted:
+                try:
+                    candidate = KIS(key=key, secret=secret, cano=cano, product=product,
+                                    mode='demo' if mode == '모의투자' else 'real')
+                    with st.spinner('계좌 연결과 잔고 조회 권한을 확인합니다…'):
+                        snapshot = candidate.balance()
+                    st.session_state.kis_client = candidate
+                    st.session_state.kis_session_connection = True
+                    st.session_state.account_snapshot = snapshot
+                    st.session_state.account_results = {}
+                    st.session_state.kis_clear_inputs = True
+                    st.rerun()
+                except BrokerError as error:
+                    st.error(str(error))
+        st.info('연결 해제·로그아웃 시 키와 계좌 조회 자료를 제거합니다. 재접속 시 다시 연결하세요. 매매 주문 기능은 없습니다.')
+        return
+    if st.button('잔고 새로고침·종목 분석', type='primary'):
         try:
-            if st.session_state.get('kis_signature') != signature:
-                st.session_state.kis_client = KIS()
-                st.session_state.kis_signature = signature
             with st.spinner('보유종목과 잔고를 불러옵니다…'):
                 snapshot = st.session_state.kis_client.balance()
             st.session_state.account_snapshot = snapshot
@@ -51,10 +97,6 @@ def render_portfolio(store, sample_mode):
                     report = provider.automatic(code)
                     result = brief(report)
                     item.update(report=report, automatic_brief=result, analyzed_at=datetime.now(ZoneInfo('Asia/Seoul')).isoformat())
-                    try:
-                        store.save_stock({**item, 'analysis_error': None})
-                    except Exception:
-                        item['save_error'] = True
                 except Exception:
                     item['error'] = '기업 분석 미완료 · 공식 자료/상품 유형 확인 필요'
                 st.session_state.account_results[code] = item
@@ -107,8 +149,7 @@ def render_portfolio(store, sample_mode):
         note = st.text_area('투자일지 · 보유 이유와 다음 확인 조건')
         if st.form_submit_button('일지 저장'):
             if note.strip():
-                try:
-                    store.log('journal', {'code': selected['code'], 'kind': 'note', 'note': note.strip(), 'at': datetime.now(ZoneInfo('Asia/Seoul')).isoformat()})
-                    st.success('일지를 저장했습니다.')
-                except Exception:
-                    st.error('일지 저장에 실패했습니다. 입력 내용을 복사해 두세요.')
+                st.session_state.setdefault('account_notes', []).append({
+                    'code': selected['code'], 'note': note.strip(),
+                    'at': datetime.now(ZoneInfo('Asia/Seoul')).isoformat()})
+                st.success('현재 접속 세션에 일지를 저장했습니다. 연결 해제 전 별도로 보관하세요.')

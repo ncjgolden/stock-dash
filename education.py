@@ -30,14 +30,16 @@ def render_education():
     except OSError:
         st.info("교육자료를 준비하고 있습니다. 잠시 후 다시 열어 주세요.")
         return
-    st.header("교육자료")
+    st.markdown('''<style>
+    .stMainBlockContainer{padding-top:0.5rem!important}
+    [data-testid="stVerticalBlock"]{gap:0.5rem}
+    </style>''', unsafe_allow_html=True)
     expanded = st.toggle("전체 보기", key="education_expanded", help="대시보드 목차를 접고 교육자료를 화면 너비로 펼칩니다.")
     if expanded:
         st.markdown('''<style>
         [data-testid="stSidebar"], [data-testid="stHeader"]{display:none!important}
-        .block-container{max-width:100%!important;padding:0.6rem 1rem!important}
-        iframe[title="st.iframe"]{height:calc(100vh - 150px)!important;min-height:600px}
+        .block-container{max-width:100%!important;padding:0.15rem 1rem!important}
+        iframe[title="st.iframe"]{height:calc(100vh - 70px)!important;min-height:600px}
         </style>''', unsafe_allow_html=True)
-    st.caption("프로필 · 강의 요약 · 1~12강 · 오른쪽 아래에서 필기 도구를 켤 수 있습니다.")
     components.html(content, height=1000, scrolling=True)
     watch_course(version)

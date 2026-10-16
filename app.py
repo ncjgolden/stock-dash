@@ -38,7 +38,6 @@ try:
         "DART_API_KEY",
         "OPENAI_API_KEY",
         "OPENAI_MODEL",
-        "KIS_ENV", "KIS_APP_KEY", "KIS_APP_SECRET", "KIS_CANO", "KIS_ACNT_PRDT_CD",
     ]:
         if key in st.secrets:
             os.environ[key] = str(st.secrets[key])
@@ -240,6 +239,14 @@ if st.session_state.get("force_nav"):
     st.session_state.nav_choice = st.session_state.pop("force_nav")
 
 NAV_ITEMS = ["오늘의 투자판단", "계좌 연결", "교육자료", "설정"]
+# Apply explicit entry links once per route change; preserve navigation on reruns.
+entry_page = st.query_params.get("page", "")
+if st.session_state.get("entry_page") != entry_page:
+    st.session_state.entry_page = entry_page
+    if entry_page in ("education", "dashboard"):
+        st.session_state.nav_choice = "교육자료" if entry_page == "education" else "오늘의 투자판단"
+        st.session_state.education_expanded = entry_page == "education"
+
 legacy = {"내 종목":"오늘의 투자판단", "통합 분석":"오늘의 투자판단", "홈":"오늘의 투자판단", "AI 인사이트":"오늘의 투자판단", "관심 종목":"오늘의 투자판단", "포트폴리오":"계좌 연결"}
 current = st.session_state.get("nav_choice", "오늘의 투자판단")
 if current not in NAV_ITEMS:
@@ -742,3 +749,4 @@ else:
     elif page == "시장 현황": render_market()
     else:
         render_placeholder("테마 & 섹터", "산업별 흐름을 확인합니다.", [("업종 강도", "sector.performance", "업종별 등락과 거래대금"), ("업종 수급", "sector.flow", "외국인·기관 자금 흐름"), ("산업 수출", "industry.export", "품목별 수출 변화")])
+
