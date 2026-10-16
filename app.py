@@ -15,6 +15,7 @@ from education import render_education
 from automatic import brief
 from data_registry import PROVIDERS, capabilities as active_capabilities, health_all
 from providers import DataError, Official, demo
+from krx_api import fetch_market_indices
 from storage import Store
 from portfolio_ui import render_portfolio
 from ui_v2 import apply_theme, brand, card, empty_state, hero, source_badge
@@ -107,7 +108,7 @@ if password and not st.session_state.get("authorized"):
             st.subheader("개인 대시보드 열기")
             with st.form("login"):
                 entered = st.text_input("비밀번호", type="password", placeholder="설정한 비밀번호를 입력하세요")
-                if st.form_submit_button("대시보드 열기", type="primary", use_container_width=True):
+                if st.form_submit_button("대시보드 열기", type="primary", width="stretch"):
                     if hmac.compare_digest(entered.encode(), password.encode()):
                         st.session_state.authorized = True
                         st.rerun()
@@ -284,7 +285,7 @@ with st.sidebar:
     else:
         st.caption("클라우드 저장" if store.cloud else "실행 서버 저장")
 
-    if password and st.button("로그아웃", use_container_width=True):
+    if password and st.button("로그아웃", width="stretch"):
         st.session_state.clear()
         st.rerun()
 
@@ -305,7 +306,7 @@ def global_search():
                 label_visibility="collapsed",
             )
         with col_b:
-            submitted = st.form_submit_button("검색·분석", type="primary", use_container_width=True)
+            submitted = st.form_submit_button("검색·분석", type="primary", width="stretch")
     if submitted:
         try:
             provider = st.session_state.get("directory_provider") or Official()
@@ -342,15 +343,37 @@ def render_home():
 
     st.subheader("시장 스냅샷")
     cols = st.columns(4)
+    # 실제 공식 API가 반환한 값만 표시합니다. 연결 실패 시 숫자를 임의로 만들지 않습니다.
+    try:
+        market_rows = fetch_market_indices()
+    except Exception:
+        market_rows = []
+    index_by_name = {str(item.get("name", "")).upper(): item for item in market_rows}
+    kospi = index_by_name.get("KOSPI")
+    kosdaq = index_by_name.get("KOSDAQ")
+
+    def index_card_value(item):
+        if not item or item.get("close") is None:
+            return "미확인", "공식 지수 자료를 가져오지 못했습니다."
+        close = f"{item['close']:,.2f}"
+        change = item.get("change_rate")
+        change_text = f"등락률 {change:+.2f}%" if change is not None else "등락률 미확인"
+        day = str(item.get("date", ""))
+        if len(day) == 8 and day.isdigit():
+            day = f"{day[:4]}-{day[4:6]}-{day[6:]}"
+        return close, f"{change_text} · 기준일 {day or '미확인'}"
+
+    kospi_value, kospi_note = index_card_value(kospi)
+    kosdaq_value, kosdaq_note = index_card_value(kosdaq)
     market_cards = [
-        ("KOSPI", "데이터 연결 필요", "market.index"),
-        ("KOSDAQ", "데이터 연결 필요", "market.index"),
-        ("외국인 수급", "데이터 연결 필요", "market.investor_flow"),
-        ("원/달러", "데이터 연결 필요", "macro.fx"),
+        ("KOSPI", kospi_value, kospi_note, "market.kospi"),
+        ("KOSDAQ", kosdaq_value, kosdaq_note, "market.kosdaq"),
+        ("외국인 수급", "미연결", "투자자별 수급 API 미연결", "market.investor_flow"),
+        ("원/달러", "미연결", "환율 API 미연결", "macro.fx"),
     ]
-    for col, (title, value, cap) in zip(cols, market_cards):
+    for col, (title, value, note, cap) in zip(cols, market_cards):
         with col:
-            card(title, value, f"필요 Capability · {cap}")
+            card(title, value, f"{note} · {cap}")
 
     left, right = st.columns([2, 1])
     with left:
@@ -367,7 +390,7 @@ def render_home():
                 notices = sorted(report.get("disclosures", []), key=lambda x: x.get("date", ""), reverse=True)
                 if notices:
                     for item in notices[:4]:
-                        st.link_button(item["date"] + " · " + item["title"], item["url"], use_container_width=True)
+                        st.link_button(item["date"] + " · " + item["title"], item["url"], width="stretch")
                 else:
                     st.caption("선택 종목의 최근 공시가 수집되지 않았습니다.")
             else:
@@ -410,7 +433,8 @@ def render_market():
     source_badge(f"현재 활성 Capability {len(caps)}개", "ok" if caps else "wait")
     st.markdown("")
     rows = [
-        ("시장 지수", "market.index", "KOSPI·KOSDAQ 지수와 등락"),
+        ("KOSPI 지수", "market.kospi", "KOSPI 지수와 등락"),
+        ("KOSDAQ 지수", "market.kosdaq", "KOSDAQ 지수와 등락"),
         ("시장 폭", "market.breadth", "상승·하락 종목 수와 확산도"),
         ("거래대금", "market.turnover", "시장/종목 거래대금"),
         ("투자자 수급", "market.investor_flow", "외국인·기관·개인 순매수"),
@@ -436,7 +460,7 @@ def render_stock():
     if not is_demo:
         b1, b2 = st.columns([1, 5])
         with b1:
-            if st.button("최신 데이터", type="primary", use_container_width=True):
+            if st.button("최신 데이터", type="primary", width="stretch"):
                 run_analysis(stock["code"])
         with b2:
             if st.session_state.get("save_notice"):
@@ -499,7 +523,7 @@ def render_stock():
         )
         chart["연도"] = chart["연도"].astype(str)
         st.bar_chart(chart.set_index("연도"), color=["#2563EB", "#10B981"])
-        st.dataframe(chart, hide_index=True, use_container_width=True)
+        st.dataframe(chart, hide_index=True, width="stretch")
         st.caption("단위 억원 · 확정 결산 기준. 분기 실적이나 미래 전망을 대신하지 않습니다.")
 
         st.subheader("판단 근거")
@@ -548,7 +572,7 @@ def render_stock():
         notices = sorted(report.get("disclosures", []), key=lambda x: x.get("date", ""), reverse=True)
         if notices:
             for item in notices[:12]:
-                st.link_button(item["date"] + " · " + item["title"], item["url"], use_container_width=True)
+                st.link_button(item["date"] + " · " + item["title"], item["url"], width="stretch")
         else:
             empty_state("최근 공시 없음", "현재 수집본에 공시가 없으며, 공시가 없다는 확정 판단은 아닙니다.")
 
@@ -654,7 +678,7 @@ def render_watchlist():
                 }
             )
         if rows:
-            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+            st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
         else:
             empty_state("관심종목 없음", "위 입력창에서 첫 종목을 추가하세요.")
     else:
