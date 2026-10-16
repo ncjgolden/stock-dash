@@ -142,7 +142,10 @@ def run_analysis(code):
                 matches = provider.search(pending.get("name", ""))
                 if len(matches) != 1:
                     st.session_state.search_candidates = matches
-                    st.info("검색 목록에서 정확한 종목을 선택하세요.")
+                    if matches:
+                        st.info("검색 결과가 여러 개입니다. 아래 목록에서 정확한 종목을 선택하세요.")
+                    else:
+                        st.info("일치하는 상장 기업을 찾지 못했습니다. 종목명을 확인하거나 6자리 종목코드를 입력하세요.")
                     return
                 code = matches[0]["code"]
 
