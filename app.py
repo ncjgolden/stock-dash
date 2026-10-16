@@ -728,7 +728,7 @@ def render_placeholder(title, subtitle, required):
 
 
 if nav == "오늘의 투자판단":
-    render_research(store, state, sample_mode)
+    render_research(store, state, sample_mode, analyze=run_analysis)
 elif nav == "계좌 연결":
     render_portfolio(store, sample_mode)
 elif nav == "교육자료":
