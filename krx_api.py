@@ -48,11 +48,8 @@ def data_go_key_configured() -> bool:
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def fetch_data_go_price_history(code: str, days: int = 90) -> list[dict]:
-    """Fetch raw KRX stock history from the official public-data API."""
-    key = _data_go_key()
-    if not key:
-        return []
+def _fetch_data_go_price_history_cached(code: str, days: int, key: str) -> list[dict]:
+    """Fetch raw KRX stock history; the key participates in the cache identity."""
     end = date.today()
     start = end - timedelta(days=max(days, 1))
     url = "https://apis.data.go.kr/1160100/service/GetStockSecuritiesInfoService/getStockPriceInfo"
@@ -97,6 +94,14 @@ def fetch_data_go_price_history(code: str, days: int = 90) -> list[dict]:
         return sorted(rows, key=lambda x: x["date"])
     except (requests.RequestException, ValueError, TypeError, KeyError):
         return []
+
+
+def fetch_data_go_price_history(code: str, days: int = 90) -> list[dict]:
+    """Fetch cached history using the currently configured public-data key."""
+    key = _data_go_key()
+    if not key:
+        return []
+    return _fetch_data_go_price_history_cached(str(code).zfill(6), days, key)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
