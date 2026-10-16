@@ -91,34 +91,48 @@ def fetch_data_go_price_history(code: str, days: int = 90) -> list[dict]:
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def fetch_market_indices() -> list[dict]:
-    """Fetch KOSPI/KOSDAQ index values from the official public-data API."""
+    """Fetch the latest available KOSPI/KOSDAQ observations, including weekends/holidays."""
     key = _data_go_key()
     if not key:
         return []
     url = "https://apis.data.go.kr/1160100/GetMarketIndexInfoService_V2/getStockMarketIndex_V2"
+    end = date.today()
+    start = end - timedelta(days=10)
     params = {
         "serviceKey": key,
         "resultType": "json",
-        "numOfRows": 100,
-        "basDt": date.today().strftime("%Y%m%d"),
+        "numOfRows": 1000,
+        "beginBasDt": start.strftime("%Y%m%d"),
+        "endBasDt": end.strftime("%Y%m%d"),
     }
     try:
-        payload = requests.get(url, params=params, timeout=(5, 15)).json()
-        response = payload.get("response", {})
-        if str(response.get("header", {}).get("resultCode")) not in ("00", "0"):
+        response = requests.get(url, params=params, timeout=(5, 15))
+        response.raise_for_status()
+        payload = response.json()
+        response_body = payload.get("response", {})
+        if str(response_body.get("header", {}).get("resultCode")) not in ("00", "0"):
             return []
-        items = (response.get("body", {}).get("items") or {}).get("item", [])
+        items = (response_body.get("body", {}).get("items") or {}).get("item", [])
         if isinstance(items, dict):
             items = [items]
-        out = []
+        latest_by_name = {}
         for item in items:
             name = str(item.get("idxNm") or item.get("itmsNm") or item.get("indexName") or "")
-            if name in ("코스피", "코스닥", "KOSPI", "KOSDAQ"):
-                close = _clean_number(item.get("clpr"))
-                rate = _clean_number(item.get("fltRt"))
-                if close is not None:
-                    out.append({"name": name, "close": close, "change_rate": rate, "date": item.get("basDt")})
-        return out
+            if name not in ("코스피", "코스닥", "KOSPI", "KOSDAQ"):
+                continue
+            close = _clean_number(item.get("clpr"))
+            if close is None:
+                continue
+            row_date = str(item.get("basDt") or "")
+            previous = latest_by_name.get(name)
+            if previous is None or row_date > str(previous.get("date") or ""):
+                latest_by_name[name] = {
+                    "name": name,
+                    "close": close,
+                    "change_rate": _clean_number(item.get("fltRt")),
+                    "date": row_date,
+                }
+        return list(latest_by_name.values())
     except (requests.RequestException, ValueError, TypeError, KeyError):
         return []
 
