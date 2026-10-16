@@ -102,7 +102,7 @@ def _dashboard_research(state):
         return research
 
 
-def render_research(store, state, sample_mode):
+def render_research(store, state, sample_mode, analyze=None):
     theme()
     research = _dashboard_research(state)
     render_decision_dashboard(research)
@@ -111,6 +111,7 @@ def render_research(store, state, sample_mode):
         st.info('둘러보기 중입니다. 개인 목록을 저장하려면 먼저 대시보드 비밀번호를 설정하세요.')
     else:
         with st.expander('＋ 종목 추가', expanded=not state.get('stocks')):
+            st.caption('종목코드가 확인되면 추가 후 공식 시세·재무 분석을 자동 실행합니다. 종목명만 입력하면 관심목록에 등록되며, 지표는 종목코드 확인과 분석 전까지 미확인으로 표시됩니다.')
             with st.form('research_manual'):
                 name = st.text_input('종목명', placeholder='예: 삼성전자')
                 with st.expander('종목코드를 알고 있다면 · 선택'):
@@ -124,7 +125,10 @@ def render_research(store, state, sample_mode):
                         identity = known.get('code') or code or 'pending-' + hashlib.sha256(name.strip().casefold().encode()).hexdigest()[:16]
                         try:
                             store.save_stock({'code':identity, 'name':name.strip(), 'kind':known.get('kind','관심')})
-                            st.rerun()
+                            if analyze and not identity.startswith('pending-'):
+                                analyze(identity)
+                            else:
+                                st.rerun()
                         except Exception: st.error('목록 저장에 실패했습니다. 저장 공간 설정을 확인하세요.')
     for r in state.get('chat_research', []):
         if r['code'] not in research or r['as_of'] >= research[r['code']]['as_of']: research[r['code']] = r
