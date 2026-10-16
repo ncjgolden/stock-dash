@@ -176,19 +176,10 @@ def _date_range(days: int):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_daily_market_data(code: str, days: int = 3) -> list[dict]:
-    """Fetch a short recent KOSPI daily series for one issue.
-
-    The KRX daily-trading API is date-based. The dashboard therefore loads a
-    short recent window for fast rendering; longer technical history remains
-    unavailable until a dedicated historical refresh is requested.
-    """
+def _fetch_daily_market_data_cached(code: str, days: int, key: str) -> list[dict]:
+    """Fetch a short recent KRX daily series; credentials are part of cache identity."""
     code = str(code).zfill(6)
     if code not in TEST_CODES:
-        return []
-
-    key = _api_key()
-    if not key:
         return []
 
     start, end = _date_range(days)
@@ -236,6 +227,14 @@ def fetch_daily_market_data(code: str, days: int = 3) -> list[dict]:
         cursor += timedelta(days=1)
 
     return sorted(rows, key=lambda x: x["date"])
+
+
+def fetch_daily_market_data(code: str, days: int = 3) -> list[dict]:
+    """Fetch cached KRX daily data with the currently configured key."""
+    key = _api_key()
+    if not key:
+        return []
+    return _fetch_daily_market_data_cached(str(code).zfill(6), days, key)
 
 
 def _attach_derived_earnings(item: dict) -> None:
