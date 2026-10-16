@@ -190,7 +190,7 @@ def render_research(store, state, sample_mode, analyze=None):
         rows.append(row);details[key]=(stock, r, trend, frame)
     overview(details, st.session_state.get('account_snapshot'))
     with st.expander('전체 지표 비교'):
-        st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
     st.markdown('### 기업 하나를 깊게 보기')
     selected = st.selectbox('자세히 볼 종목', list(details), format_func=lambda k:stocks[k]['name'], key='research_selected')
     stock, r, trend, frame = details[selected]
