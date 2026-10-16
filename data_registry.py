@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from urllib.parse import unquote
 from zoneinfo import ZoneInfo
 
@@ -34,6 +34,12 @@ PROVIDERS = (
         "data_go_kr_stock",
         "금융위원회 주식시세정보",
         ("stock.search", "stock.quote"),
+        ("DATA_GO_KR_SERVICE_KEY",),
+    ),
+    ProviderSpec(
+        "data_go_kr_index",
+        "금융위원회 시장지수정보",
+        ("market.kospi", "market.kosdaq"),
         ("DATA_GO_KR_SERVICE_KEY",),
     ),
 )
@@ -102,6 +108,34 @@ def health(spec: ProviderSpec) -> dict:
             if code in {"00", "0"}:
                 return _result(spec.provider_id, "ok", "연결·인증 정상", started)
             return _result(spec.provider_id, "error", f"응답코드 {code or '확인 필요'}", started)
+
+        if spec.provider_id == "data_go_kr_index":
+            key = unquote(os.getenv("DATA_GO_KR_SERVICE_KEY", "").strip())
+            end = date.today()
+            start = end - timedelta(days=10)
+            response = requests.get(
+                "https://apis.data.go.kr/1160100/GetMarketIndexInfoService_V2/getStockMarketIndex_V2",
+                params={
+                    "serviceKey": key,
+                    "resultType": "json",
+                    "numOfRows": 1000,
+                    "beginBasDt": start.strftime("%Y%m%d"),
+                    "endBasDt": end.strftime("%Y%m%d"),
+                },
+                timeout=(5, 12),
+            )
+            response.raise_for_status()
+            payload = response.json()
+            body = payload.get("response", {})
+            code = str(body.get("header", {}).get("resultCode", ""))
+            if code not in {"00", "0"}:
+                return _result(spec.provider_id, "error", f"지수 API 응답코드 {code or '확인 필요'}", started)
+            items = (body.get("body", {}).get("items") or {}).get("item", [])
+            if isinstance(items, dict):
+                items = [items]
+            if not items:
+                return _result(spec.provider_id, "error", "인증은 통과했으나 최근 지수 자료 없음", started)
+            return _result(spec.provider_id, "ok", "지수 API 연결·인증 정상", started)
 
         return _result(spec.provider_id, "unknown", "진단 미구현", started)
     except requests.Timeout:
