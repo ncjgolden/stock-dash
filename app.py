@@ -380,8 +380,8 @@ def render_home():
         with st.container(border=True):
             st.subheader("주요 지수 추이")
             empty_state(
-                "시장 시계열 API 연결 대기",
-                "지수 API가 연결되면 KOSPI·KOSDAQ과 주요 시장 흐름을 이 영역에 표시합니다. 가상 지수는 넣지 않습니다.",
+                "과거 지수 추이 데이터는 아직 미연결",
+                "위 KOSPI·KOSDAQ 카드에는 공식 API에서 가져온 최신값을 표시합니다. 기간별 그래프는 과거 지수 시계열을 별도로 연결한 뒤 표시합니다.",
             )
     with right:
         with st.container(border=True):
