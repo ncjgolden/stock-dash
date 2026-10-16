@@ -42,6 +42,11 @@ def _data_go_key() -> str | None:
     return _secret_or_env("DATA_GO_KR_SERVICE_KEY")
 
 
+def data_go_key_configured() -> bool:
+    """Return whether the public-data key is configured without exposing it."""
+    return bool(_data_go_key())
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def fetch_data_go_price_history(code: str, days: int = 90) -> list[dict]:
     """Fetch raw KRX stock history from the official public-data API."""
