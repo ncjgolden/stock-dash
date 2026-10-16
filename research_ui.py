@@ -124,12 +124,22 @@ def render_research(store, state, sample_mode, analyze=None):
                         known = next((s for s in state.get('stocks', []) if s['name'].strip().casefold() == name.strip().casefold()), {})
                         identity = known.get('code') or code or 'pending-' + hashlib.sha256(name.strip().casefold().encode()).hexdigest()[:16]
                         try:
-                            store.save_stock({'code':identity, 'name':name.strip(), 'kind':known.get('kind','관심')})
-                            if analyze and not identity.startswith('pending-'):
+                            new_stock = {'code':identity, 'name':name.strip(), 'kind':known.get('kind','관심')}
+                            store.save_stock(new_stock)
+                            local_stocks = state.setdefault('stocks', [])
+                            if not any(s.get('code') == identity for s in local_stocks):
+                                local_stocks.append(new_stock)
+                            if analyze:
                                 analyze(identity)
                             else:
                                 st.rerun()
                         except Exception: st.error('목록 저장에 실패했습니다. 저장 공간 설정을 확인하세요.')
+        matches = st.session_state.get('search_candidates', [])
+        if analyze and len(matches) > 1:
+            with st.form('research_manual_candidate'):
+                candidate = st.selectbox('검색된 종목', matches, format_func=lambda x: x['name'] + ' · ' + x['code'])
+                if st.form_submit_button('이 종목 분석', type='primary'):
+                    analyze(candidate['code'])
     for r in state.get('chat_research', []):
         if r['code'] not in research or r['as_of'] >= research[r['code']]['as_of']: research[r['code']] = r
     stocks = {s['code']:s for s in state.get('stocks', [])}
