@@ -269,9 +269,23 @@ def load_market_bundle(research: dict) -> dict:
             rows = fetch_daily_market_data(code, days=3)
         if not rows:
             gaps = item.setdefault("data_gaps", [])
-            note = "KRX 시장데이터 연결 실패 또는 승인된 API 데이터 없음"
-            if note not in gaps:
-                gaps.append(note)
+            data_go_configured = data_go_key_configured()
+            krx_configured = bool(_api_key())
+            if not data_go_configured and not krx_configured:
+                note = "주가 시계열 미확보: DATA_GO_KR_SERVICE_KEY와 KRX_API_KEY가 모두 설정되지 않았습니다."
+            elif data_go_configured and not krx_configured:
+                note = "주가 시계열 미확보: 공공데이터포털 키는 설정되어 있으나 조회 결과가 비었습니다. 서비스 승인·응답코드·조회기간·종목코드를 확인하세요."
+            elif krx_configured and not data_go_configured:
+                note = "주가 시계열 미확보: KRX_API_KEY는 설정되어 있으나 조회 결과가 비었습니다. KRX API 권한·응답·조회기간을 확인하세요."
+            else:
+                note = "주가 시계열 미확보: 두 API 키가 설정되어 있으나 조회 결과가 비었습니다. 서비스 승인·응답코드·네트워크·조회기간·종목코드를 확인하세요."
+            # Replace earlier generic notices so the screen reports the current configuration.
+            gaps[:] = [
+                gap for gap in gaps
+                if "KRX 시장데이터 연결 실패 또는 승인된 API 데이터 없음" not in str(gap)
+                and not str(gap).startswith("주가 시계열 미확보:")
+            ]
+            gaps.append(note)
             continue
 
         latest = rows[-1]

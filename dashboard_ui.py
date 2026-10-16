@@ -432,9 +432,21 @@ def _data_status_rows(raw: dict, focus: dict):
         add("적정주가 참고", "검증값 없음", valuation.get("source"), "평가값 미확정")
 
     if prices.get("rows"):
-        add("주가 시계열", f"{len(prices['rows'])}건 · 마지막 {prices['rows'][-1].get('date','')}", prices.get("source"), "확인" if prices.get("adjusted") is True else "원시 종가")
+        price_rows = prices["rows"]
+        first_date = price_rows[0].get("date", "")
+        last_date = price_rows[-1].get("date", "")
+        add(
+            "주가 시계열",
+            f"{len(price_rows)}건 · {first_date} ~ {last_date}",
+            prices.get("source"),
+            "확인" if prices.get("adjusted") is True else "원시 종가",
+        )
     else:
-        add("일봉·완료 주봉", "검증된 시계열 없음", "충분한 기간의 가격 데이터 미확보", "데이터 연결 필요")
+        diagnostic = next(
+            (str(gap) for gap in (raw.get("data_gaps") or []) if str(gap).startswith("주가 시계열 미확보:")),
+            "충분한 기간의 가격 데이터 미확보",
+        )
+        add("일봉·완료 주봉", "검증된 시계열 없음", diagnostic, "데이터 연결 필요")
 
     if peers.get("rows"):
         add("경쟁사 영업이익", f"{len(peers['rows'])}개 기업 비교", peers.get("source"), "확인")
