@@ -11,6 +11,7 @@ The adapter is intentionally small and conservative:
 from __future__ import annotations
 
 from datetime import date, timedelta
+import os
 from urllib.parse import unquote
 
 import requests
@@ -21,20 +22,24 @@ BASE_URL = "https://data-dbg.krx.co.kr/svc/apis/sto/stk_bydd_trd"
 TEST_CODES = {"005930", "000660"}
 
 
-def _api_key() -> str | None:
+def _secret_or_env(name: str) -> str | None:
+    """Read credentials from Streamlit Secrets first, then environment variables."""
+    value = None
     try:
-        value = st.secrets.get("KRX_API_KEY")
+        value = st.secrets.get(name)
     except Exception:
-        value = None
+        pass
+    if not value:
+        value = os.getenv(name)
     return unquote(str(value).strip()) if value else None
+
+
+def _api_key() -> str | None:
+    return _secret_or_env("KRX_API_KEY")
 
 
 def _data_go_key() -> str | None:
-    try:
-        value = st.secrets.get("DATA_GO_KR_SERVICE_KEY")
-    except Exception:
-        value = None
-    return unquote(str(value).strip()) if value else None
+    return _secret_or_env("DATA_GO_KR_SERVICE_KEY")
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -89,21 +94,16 @@ def fetch_data_go_price_history(code: str, days: int = 90) -> list[dict]:
         return []
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
-def fetch_market_indices() -> list[dict]:
-    """Fetch the latest available KOSPI/KOSDAQ observations, including weekends/holidays."""
-    key = _data_go_key()
-    if not key:
-        return []
+@st.cache_data(ttl=300, show_spinner=False)
+def _fetch_market_indices_cached(key: str, start_date: str, end_date: str) -> list[dict]:
+    """Fetch the latest available KOSPI/KOSDAQ observations over a date range."""
     url = "https://apis.data.go.kr/1160100/GetMarketIndexInfoService_V2/getStockMarketIndex_V2"
-    end = date.today()
-    start = end - timedelta(days=10)
     params = {
         "serviceKey": key,
         "resultType": "json",
         "numOfRows": 1000,
-        "beginBasDt": start.strftime("%Y%m%d"),
-        "endBasDt": end.strftime("%Y%m%d"),
+        "beginBasDt": start_date,
+        "endBasDt": end_date,
     }
     try:
         response = requests.get(url, params=params, timeout=(5, 15))
@@ -117,17 +117,19 @@ def fetch_market_indices() -> list[dict]:
             items = [items]
         latest_by_name = {}
         for item in items:
-            name = str(item.get("idxNm") or item.get("itmsNm") or item.get("indexName") or "")
-            if name not in ("코스피", "코스닥", "KOSPI", "KOSDAQ"):
+            name = str(item.get("idxNm") or item.get("itmsNm") or item.get("indexName") or "").strip()
+            normalized = name.upper().replace(" ", "")
+            if normalized not in ("코스피", "코스닥", "KOSPI", "KOSDAQ"):
                 continue
             close = _clean_number(item.get("clpr"))
             if close is None:
                 continue
             row_date = str(item.get("basDt") or "")
-            previous = latest_by_name.get(name)
+            label = "KOSPI" if normalized in ("코스피", "KOSPI") else "KOSDAQ"
+            previous = latest_by_name.get(label)
             if previous is None or row_date > str(previous.get("date") or ""):
-                latest_by_name[name] = {
-                    "name": name,
+                latest_by_name[label] = {
+                    "name": label,
                     "close": close,
                     "change_rate": _clean_number(item.get("fltRt")),
                     "date": row_date,
@@ -136,6 +138,17 @@ def fetch_market_indices() -> list[dict]:
     except (requests.RequestException, ValueError, TypeError, KeyError):
         return []
 
+
+def fetch_market_indices() -> list[dict]:
+    """Use credentials as part of the cache key and avoid caching a missing-key result."""
+    key = _data_go_key()
+    if not key:
+        return []
+    end = date.today()
+    start = end - timedelta(days=10)
+    return _fetch_market_indices_cached(
+        key, start.strftime("%Y%m%d"), end.strftime("%Y%m%d")
+    )
 
 def _clean_number(value):
     if value in (None, "", "-"):
