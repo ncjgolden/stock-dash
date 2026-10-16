@@ -8,7 +8,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from krx_api import fetch_market_indices
+from krx_api import data_go_key_configured, fetch_market_indices
 
 
 UP = "#6FCB2F"
@@ -175,20 +175,23 @@ div[data-testid="stDataFrame"]{border-color:#303430!important}
 
 
 def _ticker_row(research=None):
-    """Show verified market/index values and keep unavailable markets explicit."""
+    """Show verified market/index values and explain why unavailable values are absent."""
     items = [
-        ("KOSPI", "연결 대기", ""),
-        ("KOSDAQ", "연결 대기", ""),
-        ("S&P500", "연결 대기", ""),
-        ("SOX", "연결 대기", ""),
-        ("원/달러", "연결 대기", ""),
+        ("KOSPI", "조회 대기", ""),
+        ("KOSDAQ", "조회 대기", ""),
+        ("S&P500", "API 미연결", ""),
+        ("SOX", "API 미연결", ""),
+        ("원/달러", "API 미연결", ""),
     ]
     try:
-        for row in fetch_market_indices():
+        index_rows = fetch_market_indices()
+        seen = set()
+        for row in index_rows:
             name = row.get("name")
             label = "KOSPI" if name in ("코스피", "KOSPI") else "KOSDAQ" if name in ("코스닥", "KOSDAQ") else None
             if not label:
                 continue
+            seen.add(label)
             for idx, (old_name, _, _) in enumerate(items):
                 if old_name == label:
                     rate = row.get("change_rate")
@@ -197,8 +200,20 @@ def _ticker_row(research=None):
                         value += f" {rate:+.2f}%"
                     items[idx] = (label, value, "up" if (rate or 0) >= 0 else "down")
                     break
+        if not index_rows:
+            status = "API 키 미설정" if not data_go_key_configured() else "API 응답/승인 확인"
+            items[0] = ("KOSPI", status, "")
+            items[1] = ("KOSDAQ", status, "")
+        else:
+            for label in ("KOSPI", "KOSDAQ"):
+                if label not in seen:
+                    for idx, (old_name, _, _) in enumerate(items):
+                        if old_name == label:
+                            items[idx] = (label, "응답 항목 없음", "")
+                            break
     except Exception:
-        pass
+        items[0] = ("KOSPI", "API 조회 오류", "")
+        items[1] = ("KOSDAQ", "API 조회 오류", "")
     if research:
         for code, label in [("005930", "삼성전자"), ("000660", "SK하이닉스")]:
             item = research.get(code) or {}
@@ -368,7 +383,7 @@ def _industry_map(focus):
             f'<div class="sd-sector {"active" if active else ""}">'
             f'<div class="sd-sector-name">{html.escape(name)}</div>'
             f'<div class="sd-sector-value">{"현재 종목" if active else "데이터 연결 필요"}</div>'
-            f'<div class="sd-sector-note">sector.performance</div></div>'
+            f'<div class="sd-sector-note">업종 등락률 API 미연결</div></div>'
         )
     return "".join(cells)
 
@@ -404,7 +419,7 @@ def _data_status_rows(raw: dict, focus: dict):
     if flow.get("foreign") is not None and flow.get("institution") is not None:
         add("외국인·기관 수급", f"외국인 {flow['foreign']:+,.0f} / 기관 {flow['institution']:+,.0f} {flow.get('unit','')}", flow.get("source"), "확인")
     else:
-        add("외국인·기관 수급", "검증값 없음", None, "조사 필요")
+        add("외국인·기관 수급", "검증값 없음", "투자자별 수급 API 미연결", "API 미연결")
 
     if valuation.get("base") is not None:
         add("적정주가 참고", f"{valuation['base']:,.0f}원", valuation.get("source"), "확인")
@@ -414,7 +429,7 @@ def _data_status_rows(raw: dict, focus: dict):
     if prices.get("rows"):
         add("주가 시계열", f"{len(prices['rows'])}건 · 마지막 {prices['rows'][-1].get('date','')}", prices.get("source"), "확인" if prices.get("adjusted") is True else "원시 종가")
     else:
-        add("일봉·완료 주봉", "검증된 시계열 없음", None, "데이터 연결 필요")
+        add("일봉·완료 주봉", "검증된 시계열 없음", "충분한 기간의 가격 데이터 미확보", "데이터 연결 필요")
 
     if peers.get("rows"):
         add("경쟁사 영업이익", f"{len(peers['rows'])}개 기업 비교", peers.get("source"), "확인")
