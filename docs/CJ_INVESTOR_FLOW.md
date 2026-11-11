@@ -140,3 +140,36 @@ python cj_pipeline_gate.py --comparison-json /private/flow_checked.json \
 - 현행 GitHub 자동 검증은 안전한 **코드 테스트**에만 적용됩니다. 알림 자동
   발송·메인 브랜치 병합·카카오 설정·매매 실행은 포함하지 않습니다.
 - 최종 사용 전 실제 KRX 원천 및 3계좌 최신 잔고가 필요합니다.
+
+
+## 5단계: 공개 시장가격 중기 추세 연구 (별도 검증·미연동)
+`cj_market_trends.py`는 **FinanceDataReader** (한국) 및 **yfinance**
+(미국)를 선택적으로 이용하여 일간 **미조정 종가**의
+5·20·60거래관측치 수익률과 20·60개 관측치 이동평균을 산출합니다.
+한국: KOSPI·KOSDAQ·삼성전자·SK하이닉스;
+미국: S&P500·NASDAQ·NVDA·GOOGL·ANET.
+코스피/코스닥 `KS11`/`KQ11`은 FinanceDataReader README에서 확인한 코드입니다.
+미국 가격은 yfinance `auto_adjust=False` 설정을 명시해,
+배당·분할 조정 가격과 단순 종가 비교가 섞이지 않게 했습니다.
+종목의 분할·배당 발생 시 장기 수익률은 별도 검증해야 합니다.
+
+```bash
+python -m pip install -r requirements-brief.txt
+python cj_market_trends.py --market KR --asof YYYY-MM-DD
+python cj_market_trends.py --market US --asof YYYY-MM-DD
+python -m unittest discover -s tests -p 'test_cj_market_trends.py' -v
+```
+
+모든 수치는 연구용이며 **공식 거래소 인증 완료 상태가 아닙니다**.
+수익률은 거래 관측치 기준이며 통상적인 *달력 5·20·60일*과 다릅니다.
+최종 관측 날짜와 한국시간 수집 날짜를 기록합니다. 휴장, 게시 지연,
+자료 누락으로 정확한 거래일 캘린더와 불일치할 수 있으므로
+정식 보고 전 거래소 거래일과 교차확인하십시오.
+한국 **당일 오후 18시 전** 조회된 가격은 확정 종가로 채택하지 않으며,
+미국 종가의 **한국 날짜와 동일한 거래일** 역시 독립 검증 없이
+확정됐다고 간주하지 않습니다.
+미국/한국 자료는 별개 장 종료시각을 기준으로 해석합니다.
+
+현재 **정기 ChatGPT 브리핑과 미연동**이며, GitHub 코드나 패키지를
+추가했다는 사실 자체를 최신 시세 수집 성공으로 표시하지 않습니다.
+공개 라이브러리 연결실패·누락·오류 시 `UNKNOWN`을 반환합니다.
