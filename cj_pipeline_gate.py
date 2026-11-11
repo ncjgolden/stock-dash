@@ -10,14 +10,16 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import date
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
+from cj_official_reconcile import official_source
 from pathlib import Path
 
 from cj_brief_packet import concise
 from cj_portfolio_risk import adjusted_index, snapshot
 
 
-def run_stages(report=None, account_data=None, *, target="KOSPI"):
+def run_stages(report=None, account_data=None, *, target="KOSPI", now=None):
     stages = []
     result = {"status": "BLOCKED", "stages": stages,
               "brief": None, "portfolio": None,
@@ -35,8 +37,21 @@ def run_stages(report=None, account_data=None, *, target="KOSPI"):
                        "reason": "Incomplete provenance or window verification"})
         return result
     try:
-        date.fromisoformat(report["asof"])
-        # Full verification of the actual official export still requires trusted ingestion.
+        local = now or datetime.now(ZoneInfo("Asia/Seoul"))
+        if local.tzinfo is None:
+            raise ValueError("Timezone-aware clock mandatory")
+        local = local.astimezone(ZoneInfo("Asia/Seoul"))
+        asof = date.fromisoformat(report["asof"])
+        # Reject a future report or stale history, including on holidays.
+        if asof > local.date() or (local.date() - asof).days > 7:
+            raise ValueError("Future or stale official comparison")
+        if asof == local.date() and local.hour < 18:
+            raise ValueError("Same-day final investor flow not available before 18:00 KST")
+        if not official_source(report["official_url"]):
+            raise ValueError("Official KRX site URL required")
+        # A URL string is NOT proof a CSV was downloaded from KRX.
+        # Comparison results are research-only until authenticated original
+        # file provenance has been independently inspected.
         brief = concise(report, target=target)
     except (ValueError, KeyError, TypeError):
         stages.append({"name": "official_daily_comparison", "status": "BLOCKED",
