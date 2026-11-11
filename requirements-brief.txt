@@ -1,0 +1,3 @@
+# Optional CJ investor-flow research only; not required by the Streamlit app.
+-r requirements.txt
+pykrx>=1.0.51,<2
