@@ -1,5 +1,5 @@
 import unittest
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 
 from cj_pipeline_gate import run_stages
 
@@ -46,14 +46,14 @@ class GatedPipelineTests(unittest.TestCase):
         self.assertEqual(len(r["stages"]), 1)
 
     def test_valid_comparison_without_accounts_reaches_only_public_stage(self):
-        r = run_stages(evidence())
+        r = run_stages(evidence(), now=datetime(2026, 11, 11, 20, tzinfo=timezone(timedelta(hours=9))))
         self.assertEqual(r["status"], "PUBLIC_BRIEF_ONLY")
         self.assertIn("5거래일", r["brief"])
         self.assertIsNone(r["portfolio"])
         self.assertEqual(r["stages"][-1]["status"], "BLOCKED")
 
     def test_all_synthetic_fixtures_pass_nonproduction_gate(self):
-        r = run_stages(evidence(), accounts())
+        r = run_stages(evidence(), accounts(), now=datetime(2026, 11, 11, 20, tzinfo=timezone(timedelta(hours=9))))
         self.assertEqual(r["status"], "READY_FOR_MANUAL_REVIEW")
         self.assertTrue(r["portfolio"]["concentration_top3_pct"])
         self.assertFalse(r["portfolio"]["sector_exposure_complete"])
@@ -63,9 +63,30 @@ class GatedPipelineTests(unittest.TestCase):
     def test_invalid_account_data_stops_private_stage(self):
         a = accounts()
         del a["fx"]["USD"]
-        r = run_stages(evidence(), a)
+        r = run_stages(evidence(), a, now=datetime(2026, 11, 11, 20, tzinfo=timezone(timedelta(hours=9))))
         self.assertEqual(r["status"], "PUBLIC_BRIEF_ONLY")
         self.assertIsNone(r["portfolio"])
+
+    def test_premarket_source_stops_without_formatting(self):
+        r = run_stages(evidence(), accounts(), now=datetime(
+            2026, 11, 10, 16, 30, tzinfo=timezone(timedelta(hours=9))))
+        self.assertEqual(r["status"], "BLOCKED")
+        self.assertIsNone(r["brief"])
+
+    def test_future_and_stale_comparisons_are_rejected(self):
+        old = run_stages(evidence(), accounts(), now=datetime(
+            2026, 12, 1, 20, tzinfo=timezone(timedelta(hours=9))))
+        future = run_stages(evidence(), accounts(), now=datetime(
+            2026, 11, 9, 20, tzinfo=timezone(timedelta(hours=9))))
+        self.assertEqual(old["status"], "BLOCKED")
+        self.assertEqual(future["status"], "BLOCKED")
+
+    def test_fake_official_url_blocks(self):
+        e = evidence()
+        e["official_url"] = "https://data.krx.co.kr.evil.example/"
+        r = run_stages(e, accounts(), now=datetime(
+            2026, 11, 11, 20, tzinfo=timezone(timedelta(hours=9))))
+        self.assertEqual(r["status"], "BLOCKED")
 
     def test_unverified_label_is_rejected_even_with_values(self):
         e = evidence()
