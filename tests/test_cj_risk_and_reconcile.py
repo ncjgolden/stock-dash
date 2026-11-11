@@ -73,9 +73,9 @@ class PortfolioRiskTests(unittest.TestCase):
 
     def test_missing_fx_is_an_error(self):
         with self.assertRaises(KeyError):
-            snapshot([dict(account="O", symbol="NVDA", quantity=1, price=10,
+            snapshot([dict(account="OVERSEAS", symbol="NVDA", quantity=1, price=10,
                            currency="USD")],
-                     [dict(account="O", amount=0, currency="KRW")],
+                     [dict(account=a, amount=0, currency="KRW") for a in ["ISA", "GENERAL", "OVERSEAS"]],
                      {"KRW": 1}, observed_at="2026-11-11")
 
     def test_cashflow_adjusted_index_not_cost_basis_loss(self):
