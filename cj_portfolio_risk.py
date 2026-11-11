@@ -47,6 +47,9 @@ def snapshot(positions, cash, fx, *, observed_at):
         rate = positive(fx[item["currency"]], "FX rate")
         value = nonnegative(item["amount"], "cash") * rate
         per_account[account] = {"cash_krw": value, "positions_krw": 0.0}
+    required_accounts = {"ISA", "GENERAL", "OVERSEAS"}
+    if cash_accounts != required_accounts:
+        raise ValueError("All three CJ accounts (ISA, GENERAL, OVERSEAS) required")
     by_symbol = {}
     sector_values = {}
     for item in positions:
