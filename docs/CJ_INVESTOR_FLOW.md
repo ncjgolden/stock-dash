@@ -23,7 +23,7 @@ KOSPI, KOSDAQ, 삼성전자(005930), SK하이닉스(000660)입니다.
 ```bash
 python -m pip install -r requirements-brief.txt
 python cj_investor_flow.py --asof 2026-11-10
-python -m unittest tests.test_cj_investor_flow -v
+python -m unittest discover -s tests -p 'test_cj_investor_flow.py' -v
 ```
 - 예시 날짜는 보고서를 만드는 **당일 날짜가 아니라**, 그 시점에 실제 확인된
   거래일로 교체해야 합니다. 소급 예시는 7일 경과 후 실행할 수 없습니다.
