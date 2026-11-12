@@ -92,7 +92,11 @@ def main():
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--fdr", action="store_true")
     mode.add_argument("--local-csv")
+    parser.add_argument("--inspect-tail", type=int, default=0,
+                        help="Publish up to 5 recent public closes for diagnostic review")
     args = parser.parse_args()
+    if args.inspect_tail < 0 or args.inspect_tail > 5:
+        parser.error("--inspect-tail must be 0..5")
     if args.fdr:
         rows = public_fdr_rows(args.symbol, args.asof)
         provider = "FDR_PUBLIC_UNVERIFIED"
@@ -100,6 +104,10 @@ def main():
         rows = rows_from_csv(args.local_csv, args.symbol)
         provider = "LOCAL_FILE_ORIGIN_UNVERIFIED"
     result = fingerprint(rows, symbol=args.symbol, asof=args.asof)
+    if args.inspect_tail:
+        eligible = sorted((_day(d), _price(c)) for d, c in rows if _day(d) <= _day(args.asof))
+        result["diagnostic_recent_closes"] = [
+            {"date": d.isoformat(), "close": p} for d, p in eligible[-args.inspect_tail:]]
     result["provider"] = provider
     result["not_production_approved"] = True
     print(json.dumps(result, ensure_ascii=False, indent=2))
