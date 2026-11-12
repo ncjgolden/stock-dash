@@ -313,3 +313,62 @@ https://openapi.krx.co.kr/contents/OPP/USES/service/OPPUSES002_S2.cmd?BO_ID=JvJF
 키를 채팅이나 공개 GitHub 저장소에 붙여넣지 마십시오.
 공식 종가 CSV 혹은 승인된 API 결과가 실제 확보되기 전까지
 가격 61거래일 교차검증은 **미완료**입니다.
+
+
+## 11단계: 공식자료 수집 준비점검 및 사용자 작업 (2026-11-12)
+
+**즉시 실행 가능한 무인증 사전점검**:
+```bash
+python cj_krx_preflight.py --symbol 005930
+```
+현재 실제 API 인증·공식 CSV 증빙이 없다면 `release_gate=BLOCKED`,
+`market_data_validated=false`가 정상적인 결과입니다.
+인증키 환경변수의 **설정 여부만** 검사하고 키 원문은 출력하지 않습니다.
+`KRX_AUTH_KEY`가 설정되어도 이용 승인이 확인됐다고 판단하지 않습니다.
+
+### 사용자에게 필요한 사항
+**A. 빠른 수동 검증(인증키 불필요)**
+1. https://data.krx.co.kr/ 에서 '통계 > 기본 통계 > 주식 >
+   종목시세 > 개별종목 시세 추이'에서 삼성전자 005930의
+   **최소 61거래일** 일별 종가 엑셀/CSV 다운로드.
+2. 조회 시장·수정주가/기준일·단위와 KRX 원본 파일을 확인.
+   파일 형식이 `date,symbol,close`와 다르면 원본을 보존하고
+   로컬 정규화 사본을 생성. 공개 저장소에는 업로드하지 않음.
+3. 독립적으로 FinanceDataReader에서 해당 기간과 동일한
+   **미조정 종가** 내보내기. 둘 다 같은 날짜로 정규화.
+4. 두 파일을 로컬에서 대조:
+```bash
+python cj_krx_preflight.py --symbol 005930 --asof YYYY-MM-DD \
+  --official-csv /private/krx_005930.csv \
+  --public-csv /private/fdr_005930.csv \
+  --official-url https://data.krx.co.kr/
+```
+대조 수치가 모두 일치해도 출력은
+`MATCHED_NEEDS_ORIGIN_REVIEW`이며, 출처 진위·원본 다운로드 이력,
+수정주가/주식분할/단위와 자료 사용권한을 별도 확인해야
+운영 데이터로 고려할 수 있습니다.
+
+**B. 반복적 수집(공식 API 이용승인이 있을 때만)**
+- https://openapi.krx.co.kr/ 회원가입 후 '주식 >
+  유가증권 일별매매정보' 이용신청과 인증키 발급·승인 여부 확인.
+- 승인된 키는 개인 Windows PC의 안전한 환경변수에만 보관.
+  **채팅, GitHub 공개 코드, GitHub Issues/PR, Actions 로그에
+  절대 붙여넣지 말 것.**
+- `cj_krx_official_price.py`는 공식 유가증권 **종가** 조회용이며
+  투자자별 외국인/기관 수급 서비스가 아닙니다.
+- 공식 API 이용조건·호출량·재배포 제한 확인 전에는 광범위한
+  정기 조회를 활성화하지 않음.
+
+**C. 국내 수급(별도 자료)**
+- KRX '주식 > 거래실적 > 투자자별 거래실적(개별종목)' 또는
+  '투자자별 거래실적'에서 기준일·투자자 분류·순매수 **금액 단위**
+  확인 후 원본 보존.
+- `date,target,foreign_krw,institution_krw,individual_krw` 형식으로
+  *로컬에서* 정규화하고 `cj_official_reconcile.py`로 PyKrx와 대조.
+- 현재 PyKrx 인증 문제가 해결되지 않았으므로 당장 교차검증할
+  독립 PyKrx 자료가 없으면 수급 값은 계속 `UNKNOWN`입니다.
+
+### 실제 브리핑과의 분리
+공식자료 사용 승인을 받거나 파일 비교에 성공해도 GitHub Actions와
+ChatGPT 예약 브리핑 사이의 데이터 통신은 **별도 검증 과제**입니다.
+현재 정기 브리핑 예약/시간/메인 앱은 변경하지 않았습니다.
