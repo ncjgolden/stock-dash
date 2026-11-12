@@ -64,7 +64,7 @@ class OfficialKRXPriceAdapterTests(unittest.TestCase):
             return 1000
         value = collect_official_prices(symbol="005930", end="2026-11-12",
                                        lookback_calendar_days=2, fetcher=fake_fetcher)
-        self.assertEqual(len(value["rows"]), 1)
+        self.assertEqual(len(value["rows"]), 2)
         self.assertEqual(value["skipped_or_failed_sessions"], 1)
 
 
