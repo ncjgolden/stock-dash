@@ -293,3 +293,23 @@ python cj_price_evidence_review.py \
   아니므로 실측 검증은 완료되지 않았습니다.
 - 검증 승인 전 공개 GitHub에 공식 재배포 제한자료, 인증키, 개인 계좌자료를
   커밋하거나 로그에 게시하지 마십시오.
+
+
+## 10단계: 연결 진단과 투자자료 검증 결과 구분 (2026-11-12)
+`cj_live_smoke.py`는 공개 자료 진단 결과를
+`SOURCE_DATA_AVAILABLE_UNVERIFIED` 또는 `DEGRADED`로 별도 집계하고
+GitHub Actions 실행 요약에 자료별 진단 상태를 기록합니다.
+일반 CI의 성공은 **프로그램이 오류 없이 끝났다는 뜻**일 뿐입니다.
+PyKrx 수급 조회가 인증 실패한 경우 진단에는 `DEGRADED` 경고가 표시되며
+그 값은 브리핑에서 사용하지 않습니다. **단위 테스트 성공과 외부 자료 유효성
+검증을 혼동하지 마십시오.** `usable_in_chatgpt_briefing`은
+별도 검증·연동 완료 전까지 언제나 `false`입니다.
+
+KRX 공식 OPEN API 유가증권 일별매매정보 사용에는 이용승인과
+사용자 발급 `AUTH_KEY`가 필요합니다.
+공식 사용 안내:
+https://openapi.krx.co.kr/contents/OPP/USES/service/OPPUSES002_S2.cmd?BO_ID=JvJFzlAENzZlPBDNGAWC
+승인된 키가 없으면 `cj_krx_official_price.py` 실제 조회는 차단합니다.
+키를 채팅이나 공개 GitHub 저장소에 붙여넣지 마십시오.
+공식 종가 CSV 혹은 승인된 API 결과가 실제 확보되기 전까지
+가격 61거래일 교차검증은 **미완료**입니다.
