@@ -54,9 +54,9 @@ class FlowTests(unittest.TestCase):
         rows[-1] = (rows[-1][0], {"foreign": float("nan"), "institution": 0, "individual": 0})
         self.assertIsNone(summarize(rows, ds, asof=ds[-1])["windows"]["5"])
 
-    def test_no_premarket_same_day_final_data(self):
-        with self.assertRaisesRegex(ValueError, "before 18"):
-            collect(asof="2026-11-11", now=datetime(2026, 11, 11, 16, 30,
+    def test_no_pre_20_same_day_final_data(self):
+        with self.assertRaisesRegex(ValueError, "before 20"):
+            collect(asof="2026-11-11", now=datetime(2026, 11, 11, 19, 30,
                                                   tzinfo=timezone(timedelta(hours=9))),
                     stock_api=Mock())
 
