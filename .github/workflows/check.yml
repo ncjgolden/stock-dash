@@ -13,3 +13,24 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python -m unittest discover -s tests -v
+
+  public-data-smoke:
+    name: Public data source connectivity (research only)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install optional public data collectors
+        run: python -m pip install -r requirements-brief.txt
+      - name: Check real source availability (metadata only)
+        run: python cj_live_smoke.py
+      - name: Explain source verification boundary
+        run: |
+          echo 'No official KRX numerical reconciliation was performed.'
+          echo 'No ChatGPT scheduling integration or investment trading is enabled.'

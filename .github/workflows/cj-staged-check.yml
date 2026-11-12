@@ -1,0 +1,66 @@
+name: CJ briefing staged verification (no deployment)
+on:
+  push:
+    branches:
+      - feature/cj-verified-investor-flow
+    paths:
+      - 'cj_*.py'
+      - 'tests/test_cj_*.py'
+      - '.github/workflows/cj-staged-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cj-brief-staged-verification
+  cancel-in-progress: false
+jobs:
+  data-integrity:
+    name: 1. Data parser and KRX comparison safeguards
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -p 'test_cj_investor_flow.py' -v
+      - run: python -m unittest discover -s tests -p 'test_cj_risk_and_reconcile.py' -v
+
+  briefing-packet:
+    name: 2. Verified-only brief packet formatting
+    needs: data-integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -p 'test_cj_brief_packet.py' -v
+
+  portfolio-and-gates:
+    name: 3. Portfolio risk and staged fail-closed integration
+    needs: briefing-packet
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -p 'test_cj_pipeline_gate.py' -v
+      - name: Verify pipeline stays blocked without external evidence
+        run: |
+          python - <<'PY'
+          from cj_pipeline_gate import run_stages
+          result = run_stages()
+          assert result["status"] == "BLOCKED"
+          assert result["brief"] is None
+          assert result["portfolio"] is None
+          print("Safe: no KRX evidence or private account data supplied; production gated.")
+          PY
+
+  # Intentionally no workflow to publish a live briefing, upload account records,
+  # edit ChatGPT reminders, merge to main, or place orders.
+  # The synthetic integration verifies *software logic*, not current market data.
