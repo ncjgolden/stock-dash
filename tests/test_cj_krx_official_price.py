@@ -1,6 +1,6 @@
 import unittest
 from datetime import date
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from cj_krx_official_price import (
     parse_official_response, fetch_official_daily_close, collect_official_prices
@@ -26,8 +26,9 @@ class OfficialKRXPriceAdapterTests(unittest.TestCase):
 
     def test_missing_key_does_not_attempt_network(self):
         session = Mock()
-        with self.assertRaises(RuntimeError):
-            fetch_official_daily_close(self.day, "005930", auth_key="", session=session)
+        with patch.dict("os.environ", {"KRX_AUTH_KEY": ""}):
+            with self.assertRaises(RuntimeError):
+                fetch_official_daily_close(self.day, "005930", auth_key="", session=session)
         # Production environment secrets aren't required for test, unless accidentally configured.
         # The unit test never sends a real network request.
         session.get.assert_not_called()
