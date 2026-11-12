@@ -83,7 +83,7 @@ def _records(df):
 
 
 def collect(*, asof, now=None, targets=None, stock_api=None):
-    """Read pykrx data. Never label same-day data final before 18:00 KST."""
+    """Read pykrx data. Never label same-day data final before 20:00 KST."""
     now = now or datetime.now(ZoneInfo("Asia/Seoul"))
     if now.tzinfo is None:
         raise ValueError("now must include a timezone")
@@ -91,8 +91,8 @@ def collect(*, asof, now=None, targets=None, stock_api=None):
     asof = _date(asof)
     if asof > local.date():
         raise ValueError("Future asof date is not allowed")
-    if asof == local.date() and local.hour < 18:
-        raise ValueError("Same-day KRX investor flow is not final before 18:00 KST")
+    if asof == local.date() and local.hour < 20:
+        raise ValueError("Same-day KRX investor flow is not final before 20:00 KST")
     if (local.date() - asof).days > 7:
         raise ValueError("Source date is over seven calendar days old")
     if stock_api is None:
@@ -134,7 +134,7 @@ def collect(*, asof, now=None, targets=None, stock_api=None):
         "data_kind": "investor_net_trading_value",
         "unit": "KRW",
         "provider": "pykrx (public site data; NOT official KRX API)",
-        "finality": "POST_18_KST_SOURCE_CHECK_REQUIRED",
+        "finality": "POST_20_KST_SOURCE_CHECK_REQUIRED",
         "results": results,
         "notice": "Validate critical numbers against KRX data; unavailable windows are UNKNOWN.",
     }
