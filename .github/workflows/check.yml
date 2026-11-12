@@ -30,8 +30,6 @@ jobs:
         run: python -m pip install -r requirements-brief.txt
       - name: Check real source availability (metadata only)
         run: python cj_live_smoke.py
-      - name: Temporary historical FDR price fingerprint comparison (2026-11-11)
-        run: python cj_price_session_fingerprint.py --fdr --symbol 005930 --asof 2026-11-11 --inspect-tail 5
       - name: Explain source verification boundary
         run: |
           echo 'No official KRX numerical reconciliation was performed.'
