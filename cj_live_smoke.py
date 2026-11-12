@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+from pathlib import Path
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -57,7 +59,15 @@ def run(*, now=None, flow_fn=collect_flow, trend_fn=collect_trend):
                 "source": item.get("source") or data.get("provider"),
                 "error_type": item.get("error")}
 
-    report = {"checked_at_kst": local.isoformat(),
+    good = {"DATA_ONLY", "COMPLETE", "MATCHED_60_SESSIONS"}
+    source_ok = {name: (data.get("status") in good and
+                        data.get("has_60_session_history") is True)
+                 for name, data in
+                 ((name, digest(name)) for name in checks)}
+    report = {"connectivity": ("SOURCE_DATA_AVAILABLE_UNVERIFIED"
+                               if all(source_ok.values()) else "DEGRADED"),
+              "usable_in_chatgpt_briefing": False,
+              "checked_at_kst": local.isoformat(),
               "requested_asof": asof,
               "checks": {name: digest(name) for name in checks},
               "official_krx_crosscheck": "NOT_RUN",
@@ -73,6 +83,27 @@ def main():
     args = parser.parse_args()
     report = run()
     print(json.dumps(report, ensure_ascii=False, indent=2))
+    # GitHub can mark a diagnostic run successful even with failed providers.
+    # Surface degraded data explicitly without falsely describing it as a
+    # code/test failure. Public summary contains metadata only.
+    summary = os.getenv("GITHUB_STEP_SUMMARY")
+    if summary:
+        status = report["connectivity"]
+        lines = [
+            "### CJ public market connectivity (not investment validation)",
+            f"**Data-source state: {status}**",
+            "",
+            "| Source | Availability | 60 observations |",
+            "|---|---|---|",
+        ]
+        for name, item in report["checks"].items():
+            lines.append(f'| {name} | {item["status"]} | {item["has_60_session_history"]} |')
+        lines.extend(["", "KRX official reconciliation: NOT_RUN",
+                      "ChatGPT automatic data integration: NOT_CONFIGURED"])
+        with Path(summary).open("a", encoding="utf-8") as out:
+            out.write("\\n".join(lines) + "\\n")
+    if report["connectivity"] == "DEGRADED":
+        print("::warning::CJ source connectivity DEGRADED; unit test success does not approve data.")
     if args.fail_on_unknown and any(
             value["status"] in {"UNKNOWN", "PARTIAL", "STALE_REFERENCE"}
             for value in report["checks"].values()):
