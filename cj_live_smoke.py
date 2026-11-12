@@ -44,10 +44,12 @@ def run(*, now=None, flow_fn=collect_flow, trend_fn=collect_trend):
     def digest(name):
         data = checks[name]
         if data.get("status") == "UNKNOWN":
-            return {"status": "UNKNOWN", "reason": data.get("reason", "ProviderError")}
+            return {"status": "UNKNOWN", "reason": data.get("reason", "ProviderError"),
+                    "has_60_session_history": False}
         entries = data.get("results", {})
         if not entries:
-            return {"status": "UNKNOWN", "reason": "EMPTY_RESPONSE"}
+            return {"status": "UNKNOWN", "reason": "EMPTY_RESPONSE",
+                    "has_60_session_history": False}
         item = next(iter(entries.values()))
         return {"status": item.get("status", "UNKNOWN"),
                 "asof": item.get("asof") or data.get("market_asof"),
@@ -97,7 +99,7 @@ def main():
             "|---|---|---|",
         ]
         for name, item in report["checks"].items():
-            lines.append(f'| {name} | {item["status"]} | {item["has_60_session_history"]} |')
+            lines.append(f'| {name} | {item["status"]} | {item.get("has_60_session_history", False)} |')
         lines.extend(["", "KRX official reconciliation: NOT_RUN",
                       "ChatGPT automatic data integration: NOT_CONFIGURED"])
         with Path(summary).open("a", encoding="utf-8") as out:
