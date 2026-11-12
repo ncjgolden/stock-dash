@@ -101,7 +101,7 @@ def main():
         lines.extend(["", "KRX official reconciliation: NOT_RUN",
                       "ChatGPT automatic data integration: NOT_CONFIGURED"])
         with Path(summary).open("a", encoding="utf-8") as out:
-            out.write("\\n".join(lines) + "\\n")
+            out.write("\n".join(lines) + "\n")
     if report["connectivity"] == "DEGRADED":
         print("::warning::CJ source connectivity DEGRADED; unit test success does not approve data.")
     if args.fail_on_unknown and any(
