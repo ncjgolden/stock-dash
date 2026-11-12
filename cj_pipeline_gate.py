@@ -45,8 +45,8 @@ def run_stages(report=None, account_data=None, *, target="KOSPI", now=None):
         # Reject a future report or stale history, including on holidays.
         if asof > local.date() or (local.date() - asof).days > 7:
             raise ValueError("Future or stale official comparison")
-        if asof == local.date() and local.hour < 18:
-            raise ValueError("Same-day final investor flow not available before 18:00 KST")
+        if asof == local.date() and local.hour < 20:
+            raise ValueError("Same-day final investor flow not available before 20:00 KST")
         if not official_source(report["official_url"]):
             raise ValueError("Official KRX site URL required")
         # A URL string is NOT proof a CSV was downloaded from KRX.
