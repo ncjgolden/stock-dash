@@ -267,3 +267,29 @@ PyKrx·FDR·yfinance 실측 값을 CJ ChatGPT 브리핑의 공식 검증 자료�
   거래일·미조정 종가·상품 분할 여부를 별도 검사해야 함.
 - GitHub 자동 단위테스트가 성공하더라도 **공식 키가 없어 실측 원천
   교차검증은 여전히 미완료**입니다.
+
+
+## 9단계: 공식 가격자료 대조 증빙 생성 (2026-11-12)
+`cj_price_evidence_review.py`는 **서로 독립적으로 확보한 CSV 두 개**를
+61개 동일 거래일 기준으로 대조합니다. 실무 검토용 SHA-256 파일 지문,
+기준일, 비교 범위, 불일치 사유를 출력합니다.
+입력 형식은 두 파일 모두 `date,symbol,close`이며, 단위는 주식이면 원,
+지수면 지수 포인트 등으로 통일해 정규화해야 합니다.
+
+```bash
+python cj_price_evidence_review.py \
+  --public-csv /private/fdr_005930.csv \
+  --official-csv /private/krx_005930.csv \
+  --symbol 005930 --asof YYYY-MM-DD \
+  --official-url https://data.krx.co.kr/
+```
+
+- 동일 파일 경로, 날짜 중복, 누락, 미일치, 신뢰되지 않는 원천 URL을 차단합니다.
+- 수치가 모두 일치해도 `MATCHED_NEEDS_ORIGIN_REVIEW`일 뿐입니다.
+  URL, 파일명, 해시값은 **원천의 진위를 자동 증명하지 않습니다.**
+- `reference_origin_confirmed=false`,
+  `usable_in_automatic_chatgpt_briefing=false`를 유지합니다.
+- 실제 KRX 인증키 또는 공식 거래소 CSV를 이번 단계에서 확보한 것은
+  아니므로 실측 검증은 완료되지 않았습니다.
+- 검증 승인 전 공개 GitHub에 공식 재배포 제한자료, 인증키, 개인 계좌자료를
+  커밋하거나 로그에 게시하지 마십시오.
