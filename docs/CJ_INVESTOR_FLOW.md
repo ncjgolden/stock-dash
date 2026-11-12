@@ -204,3 +204,43 @@ python -m unittest discover -s tests -p 'test_cj_market_trends.py' -v
 
 기존 오전 09:50/오후 18:30 ChatGPT 알림, main, 개인 계좌 정보, 매매는
 이번 브랜치 작업의 변경 대상이 아님.
+
+
+## 7단계: 실데이터 연결 결과 (2026-11-12)
+GitHub Actions 기존 `check.yml`에 별도 `public-data-smoke` 검사를 연결하여
+기본 테스트 성공 후 실제 공개 제공자 연결 시험이 자동 실행되도록 했습니다.
+
+확인된 실행: https://github.com/ncjgolden/stock-dash/actions/runs/43159883538
+- 국내 삼성전자 FDR 종가: `DATA_ONLY`, 마지막 2026-11-11, 60거래관측치 확보
+- 미국 S&P500 yfinance 종가: `DATA_ONLY`, 마지막 2026-11-11, 60거래관측치 확보
+- 삼성전자 투자자별 PyKrx 수급: `UNKNOWN`. 공개 CI 환경에서
+  'KRX 로그인 실패: KRX_ID 또는 KRX_PW 환경 변수가 설정되지 않았습니다' 및
+  거래소 응답 디코딩 오류 발생
+- 공식 KRX 원자료 숫자별 교차검증은 `NOT_RUN`.
+  ChatGPT 정기 브리핑 데이터 연결은 `NOT_CONFIGURED`.
+
+**중요**: CI의 `success`는 진단 스크립트가 정상 완료됐다는 뜻으로,
+위 세 외부 제공자 모두가 성공하거나 공식 수치를 검증했다는 뜻이 아닙니다.
+KRX 아이디/비밀번호나 개인 계좌정보를 **공개 저장소·GitHub 로그·워크플로
+설정에 제공하지 마십시오**. 공식 CSV 수동 내보내기 또는 승인된 공식
+비공개 API 경로를 별도 검증하기 전 수급은 UNKNOWN으로 둡니다.
+
+### 공식 가격 대조 모듈
+`cj_price_reconcile.py`는 61개 이상 거래 관측치의 공개 종가와
+독립적으로 확인한 공식 거래소 종가를 **동일 거래일·동일 단위·동일
+미조정 종가**로 대조합니다. 정규화된 두 CSV의 열은
+`date,symbol,close`입니다. 거래소 원본 컬럼·분할·배당·호가 단위를
+검사한 후 로컬에서 정규화해야 합니다. URL 문자열만으로
+공식 원천 파일의 진위를 보장하지는 않습니다.
+
+```bash
+python cj_price_reconcile.py --public-csv /private/public_closes.csv \
+  --official-csv /private/official_closes.csv \
+  --symbol 005930 --asof YYYY-MM-DD \
+  --official-url https://data.krx.co.kr/contents/MDC/MAIN/main/index.cmd
+```
+
+이 작업에서는 실제 공식 원자료를 확보하지 않았으므로 현재
+`MATCHED_SERIES` 실측 결과가 없습니다. 이를 완료하기 전에는
+PyKrx·FDR·yfinance 실측 값을 CJ ChatGPT 브리핑의 공식 검증 자료로
+자동 승격시키지 않습니다.
