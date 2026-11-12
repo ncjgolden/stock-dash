@@ -69,7 +69,7 @@ class GatedPipelineTests(unittest.TestCase):
 
     def test_premarket_source_stops_without_formatting(self):
         r = run_stages(evidence(), accounts(), now=datetime(
-            2026, 11, 10, 16, 30, tzinfo=timezone(timedelta(hours=9))))
+            2026, 11, 10, 19, 30, tzinfo=timezone(timedelta(hours=9))))
         self.assertEqual(r["status"], "BLOCKED")
         self.assertIsNone(r["brief"])
 
