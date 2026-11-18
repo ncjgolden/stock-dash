@@ -42,9 +42,20 @@ def summarize(rows, reference_dates, *, asof):
     Missing, duplicate, invalid, or inconsistent observations invalidate their windows.
     """
     asof = _date(asof)
-    days = sorted({_date(d) for d in reference_dates if _date(d) <= asof})
-    if not days:
-        return {"asof": None, "status": "UNKNOWN", "windows": {}}
+    reference_all = [_date(d) for d in reference_dates]
+    days = sorted({d for d in reference_all if d <= asof})
+    if not days or days[-1] != asof:
+        return {
+            "asof": asof.isoformat(), "status": "STALE_REFERENCE",
+            "unit": "KRW", "windows": {str(n): None for n in WINDOWS},
+            "reference_sessions": len(days),
+        }
+    if len(reference_all) != len(set(reference_all)):
+        return {
+            "asof": asof.isoformat(), "status": "DUPLICATE_REFERENCE",
+            "unit": "KRW", "windows": {str(n): None for n in WINDOWS},
+            "reference_sessions": len(days),
+        }
     seen = set()
     normalized = {}
     invalid = set()
