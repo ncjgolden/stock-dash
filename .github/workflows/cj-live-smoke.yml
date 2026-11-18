@@ -1,0 +1,29 @@
+name: CJ public data live smoke (research only)
+on:
+  push:
+    branches:
+      - feature/cj-verified-investor-flow
+    paths:
+      - 'cj_live_smoke.py'
+      - 'tests/test_cj_live_smoke.py'
+      - '.github/workflows/cj-live-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-source-connectivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install optional PUBLIC research libraries
+        run: python -m pip install -r requirements-brief.txt
+      - name: Public source connectivity only (no secret or account data)
+        run: python cj_live_smoke.py
+      - name: Explicit verification boundary
+        run: |
+          echo 'RESULT: connection diagnostics only; KRX source reconciliation NOT RUN.'
+          echo 'No confirmed investment numbers, no account input, no ChatGPT scheduling change.'

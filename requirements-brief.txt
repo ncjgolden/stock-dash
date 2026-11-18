@@ -1,0 +1,7 @@
+# Optional CJ investor-flow research only; not required by the Streamlit app.
+-r requirements.txt
+pykrx>=1.0.51,<2
+
+# Optional public-market history (research only; verify source dates)
+finance-datareader>=0.9,<1
+yfinance>=0.2,<2
