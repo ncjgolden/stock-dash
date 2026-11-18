@@ -433,3 +433,26 @@ ChatGPT 예약 브리핑 사이의 데이터 통신은 **별도 검증 과제**�
 - 기존 공개 `main`·스트림릿 앱·예약 시각·주문 기능은 변경하지 않는다.
 - 추후 과제: KRX 수급 확정 원본 수집 경로, 사용자 비공개 3계좌 평가액,
   독립적 현재 가격 검증, 예약 보고 결과의 실제 정밀 감사.
+
+
+## 15단계: 2026-11-18 KRX 시장별 수급 사전검증
+
+- [KRX 시장별 투자자 거래실적(공식)](https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd?screenId=MDCSTAT022)
+  의 **일별추이**에서 코스피와 코스닥 수급을 구분한다.
+  [KRX 개별종목 거래실적](https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd?screenId=MDCSTAT023)
+  은 별도 화면이다. 정규장 직후 잠정 반영과 오후 20:00 전후 최종 반영을 구분한다.
+- 실제 KRX 화면 다운로드 원본의 한글 컬럼·단위가 확인되기 전에는
+  내부 정규화 CSV가 원본 형식이라고 주장하지 말 것.
+  `cj_krx_market_flow_offline.py` 입력은 사용자 로컬에서
+  확인해 정규화한 `date,market,foreign_krw,institution_krw,individual_krw`
+  이며 **금액 단위는 원(KRW)**, 부호는 순매수 양수/순매도 음수다.
+- 예: `python cj_krx_market_flow_offline.py --file /private/krx_flow.csv --asof 2026-11-18 --generated-at 2026-11-18T21:00:00+09:00 --source-url 'https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd?screenId=MDCSTAT022' --finality FINAL`.
+- 정규화 CSV 자체에 60개 연속적인 **실제 거래소 세션**이 빠짐없이
+  존재하는지 독립 확인할 수 없으므로, 5·20·60 결과가 수학적으로 계산되어도
+  검증 상태는 `RESEARCH_ONLY_NEEDS_INDEPENDENT_KRX_SESSION_RECONCILIATION`다.
+  공식 세션 일력과 사용자 다운로드 원본의 독립적 대조 전 자동 브리핑용
+  확정 투자자 수급으로 승인하지 않는다.
+- 기존 `cj_investor_flow.summarize`는 요청한 asof 종가 세션이
+  참조 일력의 마지막 날과 다르면 `STALE_REFERENCE`, 중복 거래일이면
+  `DUPLICATE_REFERENCE`로 처리하도록 수정했다.
+- 실제 KRX 제공자료 및 브리핑 연동 통합테스트는 미완료.
