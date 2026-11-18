@@ -54,6 +54,22 @@ class FlowTests(unittest.TestCase):
         rows[-1] = (rows[-1][0], {"foreign": float("nan"), "institution": 0, "individual": 0})
         self.assertIsNone(summarize(rows, ds, asof=ds[-1])["windows"]["5"])
 
+    def test_stale_reference_never_looks_complete(self):
+        ds = days(60)
+        rows = [(d, {"foreign": 100, "institution": -30, "individual": -70})
+                for d in ds]
+        result = summarize(rows, ds, asof=ds[-1] + timedelta(days=1))
+        self.assertEqual(result["status"], "STALE_REFERENCE")
+        self.assertTrue(all(v is None for v in result["windows"].values()))
+
+    def test_duplicate_market_session_reference_blocked(self):
+        ds = days(60)
+        rows = [(d, {"foreign": 100, "institution": -30, "individual": -70})
+                for d in ds]
+        result = summarize(rows, ds + [ds[-1]], asof=ds[-1])
+        self.assertEqual(result["status"], "DUPLICATE_REFERENCE")
+        self.assertTrue(all(v is None for v in result["windows"].values()))
+
     def test_no_pre_20_same_day_final_data(self):
         with self.assertRaisesRegex(ValueError, "before 20"):
             collect(asof="2026-11-11", now=datetime(2026, 11, 11, 19, 30,
